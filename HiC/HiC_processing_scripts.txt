@@ -1,2 +1,3 @@
 16.08.25
 downloaded the "Post-alignment and Duplicate Filtering Data" txt.gz file from 
+for i in *gz; do gunzip -c $i | awk 'BEGIN{OFS="\t";FS=" "} {print $1,"chr"$3,$4,$2,"chr"$7,$8,$6}' >> GM12878_summary.txt ; done
