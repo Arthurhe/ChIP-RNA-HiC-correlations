@@ -15,4 +15,3 @@
 88-102:CH12-LX
 	103-104:CH12-LX dilution HiC
 105-200&41-42:Miseq GM12878
-  
