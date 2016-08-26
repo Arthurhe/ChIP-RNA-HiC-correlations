@@ -1,3 +1,32 @@
 16.08.25
-downloaded the "Post-alignment and Duplicate Filtering Data" txt.gz file from 
-for i in *gz; do gunzip -c $i | awk 'BEGIN{OFS="\t";FS=" "} {print $1,"chr"$3,$4,$2,"chr"$7,$8,$6}' >> GM12878_summary.txt ; done
+downloaded the "Post-alignment and Duplicate Filtering Data" txt.gz file from GSE63525(liberman cell)
+
+the format is 
+read_name    strand1    chromosome1    position1    fragment-index1    strand2    chromosome2    position2    fragment-index2    mapq1    mapq2
+where
+read_name = the name of the read pair as seen in the FASTQ files
+strand = the strand that the read maps to (0=forward, 16=reverse)
+chromosome = the chromosome that the read maps to ([1-22,X,Y,MT] for human (b37 reference genome) or [chr1-chr19,chrX,chrY,chrM] for mouse (mm9 reference genome))
+position = the position on the chromosome that the read maps to
+fragment-index = the index of the interval demarcated by restrictions sites in the genome, starting with 0 for the interval preceding the first restriction site
+mapq = the mapping quality score returned by BWA 
+
+the homer intake format is (for summary.txt)
+Hi-C Summary Format (columns):
+1. Read Name (can be blank)
+2. chromosome for read 1
+3. positions for read 1 (5' end of read, one-indexed)
+4. strand of read 1 (+ or -)
+5. chromosome for read 2
+6. positions for read 2 (5' end of read, one-indexed)
+7. strand of read 2 (+ or -)
+
+Process GSE63525 file to fit HOMER standard:
+for i in *gz; do gunzip -c $i | awk 'BEGIN{OFS="\t";FS=" "} {print $1,"chr"$3,$4,$2,"chr"$7,$8,$6}' >> GM12878_summary.txt ; done &
+cat K562_summary.txt | awk 'BEGIN{OFS="\t"} {if($4==0){print $1,$2,$3,"+",$5,$6,$7} else {print $1,$2,$3,"-",$5,$6,$7}}'| awk 'BEGIN{OFS="\t"} {if($7==0){print $1,$2,$3,$4,$5,$6,"+"} else {print $1,$2,$3,$4,$5,$6,"-"}}' > K562_summary_strandCorrected.txt &
+rm GM12878_summary.txt
+
+Run HOMER command
+makeTagDirectory K562 -format HiCsummary K562_summary_strandCorrected.txt 
+analyzeHiC K562 -res 50000 -bgonly -cpu 4
+findHiCInteractionsByChr.pl K562/ -res 50000 -superRes 100000 -cpu 2 > K562_interactions.txt
