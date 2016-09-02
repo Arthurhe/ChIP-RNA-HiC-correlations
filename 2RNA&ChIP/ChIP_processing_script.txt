@@ -27,14 +27,15 @@
 
 #real work
 	library("RSQLite")
-	db=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tilingdata.sqlite')	tiling_list=list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tiling_files",full.names = T,pattern = "(K562|GM12).*_hg19_1K_tiling.bed")
+	db=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tilingdata.sqlite')
+	tiling_list=list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tiling_files",full.names = T,pattern = "(K562|GM12).*_hg19_1K_tiling.bed")
 	for(i in tiling_list){
 		filename=basename(file_path_sans_ext(i))
 		if(dbExistsTable(db,filename)){dbRemoveTable(db,filename)}
 		dbSendQuery(conn = db,paste("CREATE TABLE",filename,"
-				(chr TEXT KEY,
-				start INT KEY,
-				stop INT KEY,
+				(chr TEXT,
+				start INT,
+				stop INT,
 				count INT,
 				coverage REAL)"))
 		dbWriteTable(conn=db, name=filename, value=i, sep='\t',header=F, append=T)
