@@ -1,7 +1,6 @@
 16.08.25
-#downloaded the "Post-alignment and Duplicate Filtering Data" txt.gz file from GSE63525(liberman cell)
-
-the format is 
+##downloaded the "Post-alignment and Duplicate Filtering Data" txt.gz file from GSE63525(liberman cell)
+the format is: 
 read_name    strand1    chromosome1    position1    fragment-index1    strand2    chromosome2    position2    fragment-index2    mapq1    mapq2
 where
 read_name = the name of the read pair as seen in the FASTQ files
@@ -11,7 +10,7 @@ position = the position on the chromosome that the read maps to
 fragment-index = the index of the interval demarcated by restrictions sites in the genome, starting with 0 for the interval preceding the first restriction site
 mapq = the mapping quality score returned by BWA 
 
-#the homer intake format is (for summary.txt)
+##the homer intake format is (for summary.txt)
 Hi-C Summary Format (columns):
 1. Read Name (can be blank)
 2. chromosome for read 1
@@ -21,15 +20,38 @@ Hi-C Summary Format (columns):
 6. positions for read 2 (5' end of read, one-indexed)
 7. strand of read 2 (+ or -)
 
-#Process GSE63525 file to fit HOMER standard:
+##Process GSE63525 file to fit HOMER standard:
 for i in *gz; do gunzip -c $i | awk 'BEGIN{OFS="\t";FS=" "} {print $1,"chr"$3,$4,$2,"chr"$7,$8,$6}' >> GM12878_summary.txt ; done &
 cat K562_summary.txt | awk 'BEGIN{OFS="\t"} {if($4==0){print $1,$2,$3,"+",$5,$6,$7} else {print $1,$2,$3,"-",$5,$6,$7}}'| awk 'BEGIN{OFS="\t"} {if($7==0){print $1,$2,$3,$4,$5,$6,"+"} else {print $1,$2,$3,$4,$5,$6,"-"}}' > K562_summary_strandCorrected.txt &
 rm GM12878_summary.txt
 
-#Run HOMER command #first on K562/GM12878
-makeTagDirectory K562 -format HiCsummary K562_summary_strandCorrected.txt 
-analyzeHiC K562/ -res 25000 -bgonly #using multiple cpu cause memory explosion
-analyzeHiC K562/ -res 12500 -superRes 25000 -nomatrix -center -maxDist 10000000 -minDist 25000 -cpu 2 -interactions K562_25K_center_interactions.txt
-awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{print $3,$4,$10,$14}' K562_25K_center_interactions.txt > K562_25K_center_interactions_simplified.txt #each bin is constant 25K size
-awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$3,$4,$5,"A-"NR-1,$9,$10,$11,"B-"NR-1}' GM12878_25K_center_interactions.txt > GM12878_active_region_list.bed
-awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{printf "%s\t%s\t%s\t%s\n",$3,$5,$10,"L-"NR-1}' GM12878_25K_center_interactions.txt > GM12878_loop_list.bed
+##Run HOMER command #first on K562/GM12878
+tag=K562
+makeTagDirectory ${tag} -format HiCsummary ${tag}_summary_strandCorrected.txt 
+analyzeHiC ${tag}/ -res 25000 -bgonly #using multiple cpu cause memory explosion
+analyzeHiC ${tag}/ -res 12500 -superRes 25000 -nomatrix -center -maxDist 10000000 -minDist 25000 -cpu 2 -interactions ${tag}_25K_center_interactions.txt
+awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){print $3,$10,$4,$14}else{print $3,0,$4,$14}}' ${tag}_25K_center_interactions.txt | sort -V -k1.4 -k2 > ${tag}_25K_center_interactions_simplified.txt #each bin is constant 25K size	#chr #start1 #start2 #distance
+awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,$10,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}else{printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,0,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}}' ${tag}_25K_center_interactions.txt > temp
+mergePeaks -d 10000 temp | awk 'BEGIN{OFS="\t";FS="\t"}{print $2,$3,$4}' | sort -V -k1.4 -k2 | tail -n +2 > ${tag}_active_region_list.bed
+rm temp
+	
+##generate shuffled negative regions samples (entire loop body + anchors)
+rm *temp*
+i=1
+tot=$(($(wc -l ${tag}_25K_center_interactions_simplified.txt | awk '{print $1}')*2))
+cp ${tag}_25K_center_interactions_simplified.txt temp_include_pos
+while [ $i -le $tot ]
+do
+bedtools shuffle -i ${tag}_25K_center_interactions_simplified.txt -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > temp_new
+sort -V -k1.4 -k2 temp_new | bedtools intersect -sorted -v -f 0.85 -F 0.85 -a stdin -b temp_include_pos -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > temp_new_filtered
+cat temp_new_filtered >> temp_include_pos    #append new sample to all sample list
+sort -V -k1.4 -k2 temp_include_pos -o temp_include_pos
+cat temp_new_filtered >> temp
+i=$(wc -l temp | awk '{print $1}')
+echo $i
+done
+rm *temp*
+
+##generate shuffled negative bin samples (anchors sites)
+bedtools shuffle -seed ${i} -i ${tag}_active_region_list.bed -excl ${tag}_active_region_list.bed -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt >> temp_bin
+mergePeaks -d 10000 temp_bin | awk 'BEGIN{OFS="\t";FS="\t"}{print $2,$3,$4}' | sort -V -k1.4 -k2 > ${tag}_inactive_region_list.bed
