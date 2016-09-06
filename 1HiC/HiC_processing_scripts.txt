@@ -50,7 +50,7 @@ cat temp_new_filtered >> temp
 i=$(wc -l temp | awk '{print $1}')
 echo $i
 done
-mv temp ${tag}_25K_negative_loop_list.txt
+mv temp ${tag}_25K_negative_loops.txt
 rm *temp*
 
 ##Generate shuffled negative bin samples (anchors sites)
@@ -74,5 +74,5 @@ i=$(wc -l temp | awk '{print $1}')
 echo $i
 if [ $now -eq $(($(wc -l temp_include_pos | awk '{print $1}'))) ]; then break; fi
 done
-mv temp ${tag}_25K_12.5Kres_negative_anchors_list.txt
+mv temp ${tag}_25K_12.5Kres_negative_anchors.txt
 rm *temp*
