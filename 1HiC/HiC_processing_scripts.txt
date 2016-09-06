@@ -31,27 +31,48 @@ makeTagDirectory ${tag} -format HiCsummary ${tag}_summary_strandCorrected.txt
 analyzeHiC ${tag}/ -res 25000 -bgonly #using multiple cpu cause memory explosion
 analyzeHiC ${tag}/ -res 12500 -superRes 25000 -nomatrix -center -maxDist 10000000 -minDist 25000 -cpu 2 -interactions ${tag}_25K_center_interactions.txt
 awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){print $3,$10,$4,$14}else{print $3,0,$4,$14}}' ${tag}_25K_center_interactions.txt | sort -V -k1.4 -k2 > ${tag}_25K_center_interactions_simplified.txt #each bin is constant 25K size	#chr #start1 #start2 #distance
-awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,$10,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}else{printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,0,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}}' ${tag}_25K_center_interactions.txt > temp
-mergePeaks -d 10000 temp | awk 'BEGIN{OFS="\t";FS="\t"}{print $2,$3,$4}' | sort -V -k1.4 -k2 | tail -n +2 > ${tag}_active_region_list.bed
-rm temp
-	
-##generate shuffled negative regions samples (entire loop body + anchors)
+
+##Generate shuffled negative regions samples (entire loop body + anchors)
 rm *temp*
 i=1
-tot=$(($(wc -l ${tag}_25K_center_interactions_simplified.txt | awk '{print $1}')*2))
+tot=$(($(wc -l ${tag}_25K_center_interactions_simplified.txt | awk '{print $1}')*3/2))
 cp ${tag}_25K_center_interactions_simplified.txt temp_include_pos
 while [ $i -le $tot ]
 do
 bedtools shuffle -i ${tag}_25K_center_interactions_simplified.txt -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > temp_new
-sort -V -k1.4 -k2 temp_new | bedtools intersect -sorted -v -f 0.85 -F 0.85 -a stdin -b temp_include_pos -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > temp_new_filtered
+sort -V -k1.4 -k2 temp_new | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$2+50000,$3,$3+50000,NR}' > temp_new_anchor
+sort -V -k1.4 -k2 temp_include_pos | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$2+25000,$3,$3+25000,NR}' > temp_existing_anchor
+bedtools intersect -sorted -wa -wb -a temp_new_anchor -b temp_existing_anchor | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$4,$5,$6,$12}' | sort -V -k1.4 -k2 > temp_new_1pass
+awk 'BEGIN{OFS="\t";FS="\t"}NR==FNR{start[$6]=$4;next}FNR!=NR{if(start[$5]>$2-25000 && start[$5]<$3){print $4,$5}}' temp_existing_anchor temp_new_1pass > discard_list
+awk 'BEGIN{OFS="\t";FS="\t"}NR==FNR{discard[$1]=1;next}FNR!=NR{if(!discard[$6]==1){print $1,$2+12500,$4+12500,$4-$2}}' discard_list temp_new_anchor > temp_new_filtered
 cat temp_new_filtered >> temp_include_pos    #append new sample to all sample list
-sort -V -k1.4 -k2 temp_include_pos -o temp_include_pos
 cat temp_new_filtered >> temp
 i=$(wc -l temp | awk '{print $1}')
 echo $i
 done
+mv temp ${tag}_25K_negative_loop_list.txt
 rm *temp*
 
-##generate shuffled negative bin samples (anchors sites)
-bedtools shuffle -seed ${i} -i ${tag}_active_region_list.bed -excl ${tag}_active_region_list.bed -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt >> temp_bin
-mergePeaks -d 10000 temp_bin | awk 'BEGIN{OFS="\t";FS="\t"}{print $2,$3,$4}' | sort -V -k1.4 -k2 > ${tag}_inactive_region_list.bed
+##Generate shuffled negative bin samples (anchors sites)
+awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,$10,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}else{printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,0,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}}' ${tag}_25K_center_interactions.txt > ${tag}_25K_active_anchors.bed
+awk 'BEGIN{OFS="\t";FS="\t"}{pos=int($2/12500); if(exist[$1,pos]==1) {start[$1,pos]+=$2;count[$1,pos]+=1} else {exist[$1,pos]=1;start[$1,pos]=$2;count[$1,pos]=1;chr[$1,pos]=$1;next}} END {for (i in exist){thisstart=int(start[i]/count[i]);print chr[i],thisstart,thisstart+25000,count[i]}}' ${tag}_25K_active_anchors.bed |sort -V -k1.4 -k2> ${tag}_25K_12.5Kres_active_unique_1anchors.bed
+awk 'BEGIN{OFS="\t";FS="\t"}{sum += $4} END {print sum}' ${tag}_25K_12.5Kres_active_unique_anchors.bed
+
+rm *temp*
+i=1
+tot=$(($(wc -l ${tag}_active_unique_12.5Kres_anchors.bed | awk '{print $1}')))
+cp ${tag}_active_unique_12.5Kres_anchors.bed temp_include_pos
+while [ $i -le $tot ]
+do
+now=$(($(wc -l temp_include_pos | awk '{print $1}')))
+bedtools random -l 25000 -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > temp_new
+bedtools intersect -v -f 0.1 -F 0.1 -a temp_new -b temp_include_pos > temp_new_filtered1
+awk 'BEGIN{OFS="\t";FS="\t"}{pos=int($2/12500); if(exist[$1,pos]==1) {start[$1,pos]+=$2;count[$1,pos]+=1} else {exist[$1,pos]=1;start[$1,pos]=$2;count[$1,pos]=1;chr[$1,pos]=$1;next}} END {for (i in exist){thisstart=int(start[i]/count[i]);print chr[i],thisstart,thisstart+25000,0}}' temp_new_filtered1 > temp_new_filtered2
+cat temp_new_filtered2 >> temp_include_pos    #append new sample to all sample list
+cat temp_new_filtered2 >> temp
+i=$(wc -l temp | awk '{print $1}')
+echo $i
+if [ $now -eq $(($(wc -l temp_include_pos | awk '{print $1}'))) ]; then break; fi
+done
+mv temp ${tag}_25K_12.5Kres_negative_anchors_list.txt
+rm *temp*
