@@ -1,7 +1,7 @@
 #create sqlite tables/databases£ºthrough R 
 library(RSQLite)
 library(data.table)
-
+setwd("/home/ahe/Analysis/201608_HicChipRnaCor/data/")
 #create & index
 Db_InitNIndex=function(dbhandle,tblname,inputdata){
   if(dbExistsTable(dbhandle,tblname)){dbRemoveTable(dbhandle,tblname);print(paste(tblname,"exist!"))}

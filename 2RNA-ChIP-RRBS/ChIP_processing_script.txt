@@ -1,24 +1,17 @@
 #process bed.gz to bedgraph
-#narrow_peaks and narrow_idr_peaks for proteins
-#broad_hotspot for markers
+#peak from ENCODEng used, with ENCODE3 peak files
 
+#downloaded ChIP from ENCODEng
+#batch rename files:
+cat filenames.csv | while IFS=, read mark fname source id; do cp "${fname}.gz" "../GM12_ENCODEng_${mark}.bed.gz";done
 
 #sorted (abandoned, bedtools sorted coverage has this weird behavior that will lose the chromosome that do not have any B-file match, result in inconsistant tiling file length)
-shopt -s extglob
-cd /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/allqualified_gz
-targetadd="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike"
-for i in @(GM12|K562)*bed.gz
-do i=${i%.*.*}
-gunzip -c ${i}.bed.gz > ${targetadd}/bed/${i}.bed
-sort -V -k1.4 -k2 -o ${targetadd}/bed/${i}.bed ${targetadd}/bed/${i}.bed
-bedtools coverage -sorted -a /home/ahe/Analysis/genomeFiles/genome_tiling_1k_hg19.bed -b /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/bed/${i}.bed -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$3,$5,$6/($7+1)}' > ${targetadd}/tiling_files/${i}_hg19_1K_tiling.bed 
-done
 
-#no sorted (working properly)
+#no-sorting (working properly)
 shopt -s extglob
-cd /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/allqualified_gz
+cd /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/working_on_bedgz
 targetadd="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike"
-for i in @(GM12|K562)*bed.gz
+for i in @(GM12|K562)*(RNA|CAGE|DNase|FAIRE|RRBS|H2AZ|H3K27me3|H3K36me3|H3K4me1|H3K4me2|H3K4me3|H3K79me2|H3K9ac|H3K9me3|H4K20me1|EZH2|POLR2A|REST|CTCF|RAD21|CUX1|ZNF384|SPI1|SP1|RCOR1|MAX|HCFC1|CEBPB|JUND|TBP|SRF)*.bed.gz
 do i=${i%.*.*}
 gunzip -c ${i}.bed.gz > ${targetadd}/bed/${i}.bed
 bedtools coverage -a /home/ahe/Analysis/genomeFiles/genome_tiling_1k_hg19.bed -b /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/bed/${i}.bed | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$3,$5,$6/($7+1)}' > ${targetadd}/tiling_files/${i}_hg19_1K_tiling.bed 
