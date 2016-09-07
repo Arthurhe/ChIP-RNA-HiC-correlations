@@ -1,39 +1,61 @@
 #create sqlite tables/databases£ºthrough R 
+library(RSQLite)
+library(data.table)
+
+#create & index
+Db_InitNIndex=function(dbhandle,tblname,inputdata){
+  if(dbExistsTable(dbhandle,tblname)){dbRemoveTable(dbhandle,tblname);print(paste(tblname,"exist!"))}
+  dbSendQuery(conn = dbhandle,paste("CREATE TABLE",tblname,"(chr TEXT,start INT,stop INT,count INT,coverage REAL)"))
+  if(is.character(inputdata)){
+    dbWriteTable(conn=dbhandle, name=tblname, value=inputdata, sep='\t',header=F, append=T)
+  }else{
+    dbWriteTable(conn=dbhandle, name=tblname, value=inputdata, append=T)
+  }
+  dbSendQuery(dbhandle,paste("CREATE INDEX ",tblname,"_index on ",tblname," (chr, start)",sep=""))
+}
+
 #create target lists
-library("RSQLite")
 target_cell_type=c("GM12","K562")
 target_markers=c("RNA","CAGE","DNase","FAIRE","RRBS","H2AZ","H3K27me3","H3K36me3","H3K4me1","H3K4me2","H3K4me3","H3K79me2","H3K9ac","H3K9me3","H4K20me1",
                  "EZH2","POLR2A","REST","CTCF","RAD21","CUX1","ZNF384","SPI1","SP1","RCOR1","MAX","HCFC1","CEBPB","JUND","TBP","SRF")
-match_pattern=paste("(",paste0(target_cell_type,collapse="|"),").*(",paste0(target_markers,collapse="|"),")_hg19_1K_tiling.bed",sep="")
-tiling_ChIP = list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tiling_files", full.names = T, pattern = match_pattern)
-tiling_RNA = list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/tiling_files", full.names = T, pattern = match_pattern)
-tiling_RRBS = list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/RRBS/tiling_files", full.names = T, pattern = match_pattern)
-tiling_list=c(tiling_ChIP,tiling_RNA,tiling_RRBS)
 
 #create library
-db=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/database/tilingdata.sqlite')
-for(i in tiling_list){
-  filename=basename(file_path_sans_ext(i))
-  if(dbExistsTable(db,filename)){dbRemoveTable(db,filename)}
-  dbSendQuery(conn = db,paste("CREATE TABLE",filename,"
-                              (chr TEXT,
-                              start INT,
-                              stop INT,
-                              count INT,
-                              coverage REAL)"))
-  dbWriteTable(conn=db, name=filename, value=i, sep='\t',header=F, append=T)
+dbhandle=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/database/tilingdata.sqlite')
+for(i in target_cell_type){
+  for(j in target_markers){
+    tblname=paste(i,j,sep="_")
+    print(tblname)
+    #find each target's position
+    match_pattern=paste(i,".*",j,"_hg19_1K_tiling.bed",sep="")
+    tiling_ChIP = list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tiling_files", full.names = T, pattern = match_pattern)
+    tiling_RNA = list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/tiling_files", full.names = T, pattern = match_pattern)
+    tiling_RRBS = list.files(path="/home/ahe/Analysis/201608_HicChipRnaCor/data/RRBS/tiling_files", full.names = T, pattern = match_pattern)
+    tiling_list=c(tiling_ChIP,tiling_RNA,tiling_RRBS)
+    if(length(tiling_list)>1){ # if there are more than one candidate then merge
+      temp_list=c()
+      for(k in 1:length(tiling_list)){
+        temp_list[[k]]=fread(tiling_list[k])
+      }
+      count=temp_list[[1]][,V4]
+      coverage=temp_list[[1]][,V5]
+      for(k in 2:length(tiling_list)){
+        count=count+temp_list[[k]][,V4]
+        coverage=coverage+temp_list[[k]][,V5]
+      }
+      merged_tbl=cbind(temp_list[[1]][,.(V1,V2,V3)],count/length(tiling_list),coverage/length(tiling_list))
+      Db_InitNIndex(dbhandle,tblname,merged_tbl)
+    }else{ #else direct input
+      Db_InitNIndex(dbhandle,tblname,tiling_list[1])
+    }
+  }  
 }
 
-#create index
-for(i in 1:20){
-  temp[[i]]=dbSendQuery(db,paste("
-                                 CREATE INDEX ",tbl_list[[i]],"_index on ",tbl_list[[i]]," (chr, start)",sep=""))
-}
+
+#match_pattern=paste("(",paste0(target_cell_type,collapse="|"),").*(",paste0(target_markers,collapse="|"),")_hg19_1K_tiling.bed",sep="")
 
 #delete index
-for(i in 1:20){
-  temp[[i]]=dbSendQuery(db,paste("
-                                 DROP INDEX ",tbl_list[[i]],"_index",sep=""))
+for(i in "the wannted list"){
+  dbSendQuery(db,paste(" DROP INDEX ",tbl_list[[i]],"_index",sep=""))
 }
 
 #test timing
@@ -43,10 +65,7 @@ tbl_list=dbListTables(db)
 ptm <- proc.time()
 temp=c()
 for(i in 1:20){
-  temp[[i]]=dbGetQuery(db,paste("
-                                SELECT coverage
-                                FROM",tbl_list[[i]],
-                                "WHERE chr='chr1' AND start>1000000 AND start<4000000"))
+  temp[[i]]=dbGetQuery(db,paste("SELECT * FROM",tbl_list[[i]],"WHERE chr='chr1' AND start>1000000 AND start<4000000"))
 }
 proc.time() - ptm
 
