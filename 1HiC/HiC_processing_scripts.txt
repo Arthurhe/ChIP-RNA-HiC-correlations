@@ -74,5 +74,5 @@ i=$(wc -l temp | awk '{print $1}')
 echo $i
 if [ $now -eq $(($(wc -l temp_include_pos | awk '{print $1}'))) ]; then break; fi
 done
-mv temp ${tag}_25K_12.5Kres_negative_anchors.txt
+mv temp ${tag}_25K_12.5Kres_negative_anchors.bed
 rm *temp*

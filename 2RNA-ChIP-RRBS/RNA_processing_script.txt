@@ -1,0 +1,23 @@
+##160824 RNA processing start.
+#down load the bam files.
+#call peak using MACS:
+source activate py27
+cd /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/
+for i in /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/bam/*.bam
+do fname=$(basename $i);fbname=${fname%.*}
+macs14 -t $i -f BAM -g hs --nomodel --nolambda -n ${fbname}_calledRegions
+done
+
+#process for igv illustation
+cd /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/igv_files
+for i in /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/bam/*.bam ; do fname=$(basename $i);fbname=${fname%.*}; igvtools count ${fbname}.bam ${fbname}.tdf hg19; done
+for i in *.tdf ; do i=$(echo $i |cut -d'.' -f1); igvtools tdftobedgraph ${i}.tdf ${i}.bedgraph; done
+
+#tiling of peak files
+for i in /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/*.bed
+sort -V -k1.4 -k2 -o $i $i
+do i=${i%.*}
+bedtools coverage -sorted -a /home/ahe/Analysis/genomeFiles/genome_tiling_1k_hg19.bed -b /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/${i}.bed -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$3,$5,$6/($7+1)}' > /home/ahe/Analysis/201608_HicChipRnaCor/data/RNA/tiling_files/${i}_hg19_1K_tiling.bed 
+done
+ 
+

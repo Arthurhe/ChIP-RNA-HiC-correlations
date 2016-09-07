@@ -1,0 +1,13 @@
+#process bed.gz to bedgraph
+#narrow_peaks and narrow_idr_peaks for proteins
+#broad_hotspot for markers
+
+shopt -s extglob
+cd /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/allqualified_gz
+targetadd="/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike"
+for i in @(GM12|K562)*bed.gz
+do i=${i%.*.*}
+gunzip -c ${i}.bed.gz > ${targetadd}/bed/${i}.bed
+sort -V -k1.4 -k2 -o ${targetadd}/bed/${i}.bed ${targetadd}/bed/${i}.bed
+bedtools coverage -sorted -a /home/ahe/Analysis/genomeFiles/genome_tiling_1k_hg19.bed -b /home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/bed/${i}.bed -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$3,$5,$6/($7+1)}' > ${targetadd}/tiling_files/${i}_hg19_1K_tiling.bed 
+done

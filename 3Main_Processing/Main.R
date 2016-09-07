@@ -1,10 +1,4 @@
-#Interaction statistics
-read the shit
-length distribution
-bin not overlap with target
-
-
-#Sampler
+#loop length check (sampler quality check)
 interactionlist=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/GM12878_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
 
 interactionlist_pos=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
@@ -16,7 +10,7 @@ plot(density(interactionlist_pos[,4],bw = 10000),ylim=c(0,5e-7),main="loop lengt
 plot(density(interactionlist_neg[,4],bw = 10000),ylim=c(0,5e-7),main="loop length distribution of fake interactions",
      ylab="probabilty",xlab="loop length",sub=paste("totally",nrow(interactionlist_neg),"samples"))
 
-#all location have interactions
+#region interactivities statistics (all location have interactions)
 active_sites=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_12.5Kres_active_unique_anchors.bed",stringsAsFactors = F,sep="\t")
 negative_sites=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_12.5Kres_negative_anchors.bed",stringsAsFactors = F,sep="\t")
 
