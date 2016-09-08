@@ -1,10 +1,13 @@
 #create sqlite tables/databases£ºthrough R 
 library(RSQLite)
 library(data.table)
+
 setwd("/home/ahe/Analysis/201608_HicChipRnaCor/data/")
 #create & index
-Db_InitNIndex=function(dbhandle,tblname,inputdata){
-  if(dbExistsTable(dbhandle,tblname)){dbRemoveTable(dbhandle,tblname);print(paste(tblname,"exist!"))}
+Db_InitNIndex=function(dbhandle,tblname,inputdata,rewrite=T){
+  if(dbExistsTable(dbhandle,tblname)){
+    dbRemoveTable(dbhandle,tblname);print(paste(tblname,"exist!"))
+    }
   dbSendQuery(conn = dbhandle,paste("CREATE TABLE",tblname,"(chr TEXT,start INT,stop INT,count INT,coverage REAL)"))
   if(is.character(inputdata)){
     dbWriteTable(conn=dbhandle, name=tblname, value=inputdata, sep='\t',header=F, append=T)
@@ -16,8 +19,11 @@ Db_InitNIndex=function(dbhandle,tblname,inputdata){
 
 #create target lists
 target_cell_type=c("GM12","K562")
-target_markers=c("RNA","CAGE","DNase","FAIRE","RRBS","H2AZ","H3K27me3","H3K36me3","H3K4me1","H3K4me2","H3K4me3","H3K79me2","H3K9ac","H3K9me3","H4K20me1",
-                 "EZH2","POLR2A","REST","CTCF","RAD21","CUX1","ZNF384","SPI1","SP1","RCOR1","MAX","HCFC1","CEBPB","JUND","TBP","SRF")
+target_markers=c("RNA","CAGE","DNase","FAIRE","RRBS","ATF3","BCL3","BCLAF1","BHLHE40","CEBPB","CHD1","CHD2","CREB1","CTCF","CUX1",
+                 "E2F4","EGR1","ELF1","ELK1","EP300","ETS1","EZH2","FOS","GABPA","H2AZ","H3K27ac","H3K27me3","H3K36me3","H3K4me1",
+                 "H3K4me2","H3K4me3","H3K79me2","H3K9ac","H3K9me3","H4K20me1","JUND","MAFK","MAX","MAZ","MEF2A","MYC","NFE2","NFYA",
+                 "NFYB","NR2C2","NRF1","PML","POLR2A","POLR3G","RAD21","RCOR1","REST","RFX5","SIX5","SMC3","SPI1","SP1","SRF","STAT1",
+                 "STAT5A","TAF1","TBL1XR1","TBP","USF1","USF2","YY1","ZBTB33","ZNF143","ZNF274","ZNF384","HCFC1")
 
 #create library
 dbhandle=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/database/tilingdata.sqlite')

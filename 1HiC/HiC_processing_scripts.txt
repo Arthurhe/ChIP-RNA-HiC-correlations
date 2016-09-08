@@ -27,6 +27,7 @@ rm GM12878_summary.txt
 
 ##Run HOMER command #first on K562/GM12878
 tag=K562
+tag=GM12878
 makeTagDirectory ${tag} -format HiCsummary ${tag}_summary_strandCorrected.txt 
 analyzeHiC ${tag}/ -res 25000 -bgonly #using multiple cpu cause memory explosion
 analyzeHiC ${tag}/ -res 12500 -superRes 25000 -nomatrix -center -maxDist 10000000 -minDist 25000 -cpu 2 -interactions ${tag}_25K_center_interactions.txt
@@ -55,13 +56,13 @@ rm *temp*
 
 ##Generate shuffled negative bin samples (anchors sites)
 awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,$10,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}else{printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,0,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}}' ${tag}_25K_center_interactions.txt > ${tag}_25K_active_anchors.bed
-awk 'BEGIN{OFS="\t";FS="\t"}{pos=int($2/12500); if(exist[$1,pos]==1) {start[$1,pos]+=$2;count[$1,pos]+=1} else {exist[$1,pos]=1;start[$1,pos]=$2;count[$1,pos]=1;chr[$1,pos]=$1;next}} END {for (i in exist){thisstart=int(start[i]/count[i]);print chr[i],thisstart,thisstart+25000,count[i]}}' ${tag}_25K_active_anchors.bed |sort -V -k1.4 -k2> ${tag}_25K_12.5Kres_active_unique_1anchors.bed
+awk 'BEGIN{OFS="\t";FS="\t"}{pos=int($2/12500); if(exist[$1,pos]==1) {start[$1,pos]+=$2;count[$1,pos]+=1} else {exist[$1,pos]=1;start[$1,pos]=$2;count[$1,pos]=1;chr[$1,pos]=$1;next}} END {for (i in exist){thisstart=int(start[i]/count[i]);print chr[i],thisstart,thisstart+25000,count[i]}}' ${tag}_25K_active_anchors.bed |sort -V -k1.4 -k2> ${tag}_25K_12.5Kres_active_unique_anchors.bed
 awk 'BEGIN{OFS="\t";FS="\t"}{sum += $4} END {print sum}' ${tag}_25K_12.5Kres_active_unique_anchors.bed
 
 rm *temp*
 i=1
-tot=$(($(wc -l ${tag}_active_unique_12.5Kres_anchors.bed | awk '{print $1}')))
-cp ${tag}_active_unique_12.5Kres_anchors.bed temp_include_pos
+tot=$(($(wc -l ${tag}_25K_12.5Kres_active_unique_anchors.bed | awk '{print $1}')))
+cp ${tag}_25K_12.5Kres_active_unique_anchors.bed temp_include_pos
 while [ $i -le $tot ]
 do
 now=$(($(wc -l temp_include_pos | awk '{print $1}')))

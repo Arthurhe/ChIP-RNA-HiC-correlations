@@ -1,18 +1,100 @@
-#loop length check (sampler quality check)
-interactionlist=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/GM12878_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
+#Main Analysis 
+library(RSQLite)
+library(data.table)
+library(dtw)
+setwd("/home/ahe/Analysis/201608_HicChipRnaCor/data/")
 
-interactionlist_pos=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
-interactionlist_neg=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_negative_loops.txt",stringsAsFactors = F,sep="\t")
+#functions
+get_MarkMatrix=function(position_info,dbhandle,target_cell_type,target_markers){
+  tblname_list=paste(target_cell_type,target_markers,sep="_")
+  chr=position_info[1]
+  posstart=position_info[2]-500
+  posstopstart=position_info[3]-500
+  coverage_list=lapply(tblname_list,function(x){return(
+    dbGetQuery(dbhandle,paste("SELECT coverage FROM ",x," WHERE chr='",chr,"' AND start>",posstart," AND start<",posstopstart,sep="")))})
+  marker_matrix=do.call(cbind, coverage_list)
+  colnames(marker_matrix)=target_markers
+  return(marker_matrix)
+}
 
-par(mfrow=c(2,1))
-plot(density(interactionlist_pos[,4],bw = 10000),ylim=c(0,5e-7),main="loop length distribution of real interactions",
-     ylab="probabilty",xlab="loop length",sub=paste("totally",nrow(interactionlist_pos),"samples"))
-plot(density(interactionlist_neg[,4],bw = 10000),ylim=c(0,5e-7),main="loop length distribution of fake interactions",
-     ylab="probabilty",xlab="loop length",sub=paste("totally",nrow(interactionlist_neg),"samples"))
+#still working on the batch stuff
+get_MarkMatrix_batch=function(position_info,dbhandle,target_cell_type,target_markers){
+  tblname_list=paste(target_cell_type,target_markers,sep="_")
+  chr=position_info[,1]
+  posstart=position_info[,2]-500
+  posstopstart=position_info[,3]-500
+  #generate the commande
+  for(present_chr in unique(chr)){
+    command=paste(" WHERE chr=",present_chr)
+    for(numx in 1:nrow(position_info)){
+      command=paste(command," chr=",sep="")
+    }
+    coverage_list=lapply(tblname_list,function(x){return(
+      dbGetQuery(dbhandle,paste("SELECT coverage FROM ",x," WHERE chr='",chr,"' AND start>",posstart," AND start<",posstopstart,sep="")))})
+  }
+  marker_matrix=do.call(cbind, coverage_list)
+  rownames(marker_matrix)=target_markers
+  return(marker_matrix)
+}
 
-#region interactivities statistics (all location have interactions)
-active_sites=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_12.5Kres_active_unique_anchors.bed",stringsAsFactors = F,sep="\t")
-negative_sites=read.table("F:/DATA/R/Kees/1608_HicChipRNACor/data/HiC/K562_25K_12.5Kres_negative_anchors.bed",stringsAsFactors = F,sep="\t")
+matrix_shrink=function(thematrix,threshold=0.1,getridofmid=T){
+  if(getridofmid){
+    thematrix=thematrix[seq(1,nrow(thematrix),2),]
+  }
+  therows=rowSums(thematrix)
+  wanted=sapply(1:(length(therows)-1),function(x){return(sum(therows[x:(x+1)]))})
+  wanted=c(wanted,1)
+  return(thematrix[wanted>threshold,])
+}
 
-plot(hist(c(active_sites[,4],negative_sites[,4]),seq(-0.5,199.5,1),freq=F),xlim=c(0,50),type="l",lwd=2,ylim=c(0,0.12),
-          main="25K regions interactivities",ylab="percentage",xlab="num of region interact with")
+dtw_1toMany=function(theone,themany,distmethod="Manhattan"){
+  return(sapply(themany,function(i){dtw(matrix_shrink(theone),matrix_shrink(i),dist.method = distmethod)$distance}))
+}
+
+dtw_distMatCreat=function(thelist,distmethod="Manhattan")
+{
+  m = diag(0, length(thelist))
+  sapply(1:(length(thelist)-1), function(i)
+  {
+    m[,i] <<- c(rep(0,i), dtw_1toMany(thelist[[i]],thelist[(i+1):length(thelist)],distmethod))
+  }) 
+  m=m + t(m)
+  return(m)
+}
+
+#pick target
+target_cell_type="K562"
+interactionlist_pos=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/K562/K562_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
+interactionlist_neg=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/K562/K562_25K_negative_loops.txt",stringsAsFactors = F,sep="\t")
+
+target_cell_type="GM12"
+interactionlist_pos=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/GM12878/GM12878_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
+interactionlist_neg=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/GM12878/GM12878_25K_negative_loops.txt",stringsAsFactors = F,sep="\t")
+
+target_markers=c("RNA","CAGE","DNase","FAIRE","RRBS","ATF3","BCL3","BCLAF1","BHLHE40","CEBPB","CHD1","CHD2","CREB1","CTCF","CUX1",
+                 "E2F4","EGR1","ELF1","ELK1","EP300","ETS1","EZH2","FOS","GABPA","H2AZ","H3K27ac","H3K27me3","H3K36me3","H3K4me1",
+                 "H3K4me2","H3K4me3","H3K79me2","H3K9ac","H3K9me3","H4K20me1","JUND","MAFK","MAX","MAZ","MEF2A","MYC","NFE2","NFYA",
+                 "NFYB","NR2C2","NRF1","PML","POLR2A","POLR3G","RAD21","RCOR1","REST","RFX5","SIX5","SMC3","SPI1","SP1","SRF","STAT1",
+                 "STAT5A","TAF1","TBL1XR1","TBP","USF1","USF2","YY1","ZBTB33","ZNF143","ZNF274","ZNF384","HCFC1")
+
+dbhandle=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/database/tilingdata.sqlite')
+
+#get 500 samples to get a taste of dtw distribution in space
+#generate name list
+pos_samp_num=25
+neg_samp_num=25
+sampleset_500=rbind(interactionlist_pos[sample(nrow(interactionlist_pos),pos_samp_num),],interactionlist_neg[sample(nrow(interactionlist_neg),neg_samp_num),])
+matrixlist_500=lapply(1:nrow(sampleset_500),function(x){return(get_MarkMatrix(sampleset_500[x,],dbhandle,target_cell_type,target_markers))})
+shrinked_matrixlist_500=lapply(1:nrow(sampleset_500),function(x){return(matrix_shrink(matrixlist_500[[x]]))})
+
+#distance mastrix generation
+dis_matrix_500=dtw_distMatCreat(matrixlist_500)
+
+#tsne mapping
+ptm <- proc.time()
+dtw(matrix_shrink(matrixlist_500[[1]]),matrix_shrink(matrixlist_500[[2]]))$distance
+proc.time() - ptm
+
+ptm <- proc.time()
+dtw(matrixlist_500[[1]],matrixlist_500[[2]])$distance
+proc.time() - ptm
