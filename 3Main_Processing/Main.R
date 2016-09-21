@@ -2,6 +2,7 @@
 library(RSQLite)
 library(data.table)
 library(dtw)
+library(Rtsne) ##Rtsne 
 setwd("/home/ahe/Analysis/201608_HicChipRnaCor/data/")
 
 #functions
@@ -58,7 +59,7 @@ dtw_distMatCreat=function(thelist,distmethod="Manhattan")
   {
     m[,i] <<- c(rep(0,i), dtw_1toMany(thelist[[i]],thelist[(i+1):length(thelist)],distmethod))
   }) 
-  m=m + t(m)
+  m= m + t(m)
   return(m)
 }
 
@@ -89,8 +90,17 @@ shrinked_matrixlist_500=lapply(1:nrow(sampleset_500),function(x){return(matrix_s
 
 #distance mastrix generation
 dis_matrix_500=dtw_distMatCreat(matrixlist_500)
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/dis_mastrix_50")
+breaks=seq(4,5,0.1)
+heatmap.2(log10(dis_matrix_500+1),col=colorRampPalette(c("yellow","red","black")),
+          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
+          lhei=c(1,5),lwid=c(1,5),margins = c(5.5,5.5))
 
 #tsne mapping
+rtsne_out2=Rtsne(dis_matrix_500,dims=2,is_distance=T,perplexity=15)
+plot(rtsne_out2$Y,col=c(rep(1,25),rep(2,25)))
+
+#time testing
 ptm <- proc.time()
 dtw(matrix_shrink(matrixlist_500[[1]]),matrix_shrink(matrixlist_500[[2]]))$distance
 proc.time() - ptm

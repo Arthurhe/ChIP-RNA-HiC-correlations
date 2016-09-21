@@ -66,14 +66,30 @@ for(i in "the wannted list"){
 
 #test timing
 library("RSQLite")
-db=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/tilingdata.sqlite')
-tbl_list=dbListTables(db)
-ptm <- proc.time()
-temp=c()
-for(i in 1:20){
-  temp[[i]]=dbGetQuery(db,paste("SELECT * FROM",tbl_list[[i]],"WHERE chr='chr1' AND start>1000000 AND start<4000000"))
+get_MarkMatrix=function(position_info,dbhandle,target_cell_type,target_markers){
+  tblname_list=paste(target_cell_type,target_markers,sep="_")
+  chr=position_info[1]
+  posstart=position_info[2]-500
+  posstopstart=position_info[3]-500
+  coverage_list=lapply(tblname_list,function(x){return(
+    dbGetQuery(dbhandle,paste("SELECT coverage FROM ",x," WHERE chr='",chr,"' AND start>",posstart," AND start<",posstopstart,sep="")))})
+  marker_matrix=do.call(cbind, coverage_list)
+  colnames(marker_matrix)=target_markers
+  return(marker_matrix)
 }
+dbhandle=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/database/tilingdata.sqlite')
+target_cell_type="GM12"
+target_markers=c("RNA","CAGE","DNase","FAIRE","RRBS","ATF3","BCL3","BCLAF1","BHLHE40","CEBPB","CHD1","CHD2","CREB1","CTCF","CUX1",
+                 "E2F4","EGR1","ELF1","ELK1","EP300","ETS1","EZH2","FOS","GABPA","H2AZ","H3K27ac","H3K27me3","H3K36me3","H3K4me1",
+                 "H3K4me2","H3K4me3","H3K79me2","H3K9ac","H3K9me3","H4K20me1","JUND","MAFK","MAX","MAZ","MEF2A","MYC","NFE2","NFYA",
+                 "NFYB","NR2C2","NRF1","PML","POLR2A","POLR3G","RAD21","RCOR1","REST","RFX5","SIX5","SMC3","SPI1","SP1","SRF","STAT1",
+                 "STAT5A","TAF1","TBL1XR1","TBP","USF1","USF2","YY1","ZBTB33","ZNF143","ZNF274","ZNF384","HCFC1")
+sampleset_500=data.frame(matrix(0,20,3))
+sampleset_500[,1]=paste("chr",seq(1,20),sep="")
+sampleset_500[,2]=1
+sampleset_500[,3]=100000
+ptm <- proc.time()
+matrixlist_500=lapply(1:nrow(sampleset_500),function(x){return(get_MarkMatrix(sampleset_500[x,],dbhandle,target_cell_type,target_markers))})
 proc.time() - ptm
-
 #test result
 #searching of 3 conditions (chr='chr1' AND start>1000000 AND start<4000000) on 20 list, speed increase 100 fold, from 10s to 0.1s. file size increase from 2.7GB to 4GB. (by indexing on two column)

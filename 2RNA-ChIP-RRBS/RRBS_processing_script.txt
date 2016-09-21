@@ -3,7 +3,7 @@ tagDir="/home/ahe/Analysis/201608_HicChipRnaCor/data/RRBS"
 cd $tagDir
 for i in @(GM12|K562)*.bed
 do i=${i%.*}
-awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$3,$11}' ${i}.bed | sort -V -k1.4 -k2 | bedtools intersect -sorted -wa -wb -loj -a /home/ahe/Analysis/genomeFiles/genome_tiling_1k_hg19.bed -b stdin -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt | awk 'BEGIN{OFS="\t";FS="\t"} {if(bin_count[$1,$2,$3]>0){bin_count[$1,$2,$3]+=1;bin[$1,$2,$3]+=$8}else{bin_count[$1,$2,$3]=1;bin[$1,$2,$3]=$8;chr[$1,$2,$3]=$1;start[$1,$2,$3]=$2;end[$1,$2,$3]=$3}} END{for(i in bin){print chr[i],start[i],end[i],bin[i],bin[i]/bin_count[i]}}' | sort -V -k1.4 -k2 > tiling_files/${i}_hg19_1K_tiling.bed 
+awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$3,$11}' ${i}.bed | sort -V -k1.4 -k2 | bedtools intersect -sorted -wa -wb -loj -a /home/ahe/Analysis/genomeFiles/genome_tiling_1k_hg19.bed -b stdin -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt | awk 'BEGIN{OFS="\t";FS="\t"} {if(bin_count[$1,$2,$3]>0){bin_count[$1,$2,$3]+=1;bin[$1,$2,$3]+=$8}else{bin_count[$1,$2,$3]=1;bin[$1,$2,$3]=$8;chr[$1,$2,$3]=$1;start[$1,$2,$3]=$2;end[$1,$2,$3]=$3}} END{for(i in bin){print chr[i],start[i],end[i],bin[i]/100,bin[i]/bin_count[i]/100}}' | sort -V -k1.4 -k2 > tiling_files/${i}_hg19_1K_tiling.bed 
 done
 
 #replacing dots as 0
