@@ -1,7 +1,7 @@
 library(gplots)
 library(dtw)
 library(Rtsne) ##Rtsne 
-
+source("F:/DATA/R/CTCFanalysis_functionPack.R")
 
 #pick target
 target="K562"
@@ -101,5 +101,25 @@ for(i in 1:length(learning_list_200)){
 #examing the result of 200 samples:
 load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureAnaOn200Short.Rdata")
 
+featurelib_matrix=do.call(rbind,featurelib)
+d=dist(featurelib_matrix,method = "euclidean")
+fit=hclust(d) 
+cluster_idx <- cutree(fit, 100)
+
+featureMatrix=FeatureMatrixGenerator(learning_list_200_feature_vec,featurelib,cluster_idx)
+idf_vec=IDF_calculator(featureMatrix)
+tf_matrix=TF_calculator(featureMatrix)
+tf_idf_matrix=TF_IDF_calculator(tf_matrix,idf_vec)
+tf_idf_matrix=tf_idf_matrix[rowSums(tf_idf_matrix)!=0,colSums(tf_idf_matrix)!=0]
 
 
+pca=prcomp(tf_idf_matrix)
+plot(pca$x[,1:2],col=c(rep("red",100),rep("black",100)))
+
+rtsne_out2=Rtsne(tf_idf_matrix,dims=2,perplexity=10)
+plot(rtsne_out2$Y,col=c(rep("red",100),rep("black",100)))
+
+heatmap.2(tf_idf_matrix,breaks=seq(0,0.5,0.025),
+          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
+          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
+          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
