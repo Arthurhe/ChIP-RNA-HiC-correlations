@@ -6,7 +6,7 @@ library(data.table)
 #library(Rtsne) ##Rtsne 
 library(proxy)
 library(fastcluster)
-source("/home/ahe/Analysis/201608_HicChipRnaCor/codes/3Main_Processing")
+source("/home/ahe/Analysis/201608_HicChipRnaCor/codes/3Main_Processing/HicChipRNACor_functionPack.r")
 #source("F:/DATA/R/Kees/1608_HicChipRNACor/3Main_Processing/HicChipRNACor_functionPack.r")
 setwd("/home/ahe/Analysis/201608_HicChipRnaCor/data/")
 
