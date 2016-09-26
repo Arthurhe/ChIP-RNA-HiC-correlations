@@ -40,15 +40,15 @@ for(i in target_cell_type){
     if(length(tiling_list)>1){ # if there are more than one candidate then merge
       temp_list=c()
       for(k in 1:length(tiling_list)){
-        temp_list[[k]]=fread(tiling_list[k])
+        temp_list[[k]]=fread(tiling_list[k])#read in table k
       }
-      count=temp_list[[1]][,V4]
+      count=temp_list[[1]][,V4]#start count & cov
       coverage=temp_list[[1]][,V5]
       for(k in 2:length(tiling_list)){
-        count=count+temp_list[[k]][,V4]
+        count=count+temp_list[[k]][,V4]#add up count & cov
         coverage=coverage+temp_list[[k]][,V5]
       }
-      merged_tbl=cbind(temp_list[[1]][,.(V1,V2,V3)],count/length(tiling_list),coverage/length(tiling_list))
+      merged_tbl=cbind(temp_list[[1]][,.(V1,V2,V3)],count/length(tiling_list),coverage/length(tiling_list))#divide count & cov by num of file
       Db_InitNIndex(dbhandle,tblname,merged_tbl)
     }else{ #else direct input
       Db_InitNIndex(dbhandle,tblname,tiling_list[1])

@@ -1,72 +1,13 @@
 #Main Analysis 
 library(RSQLite)
 library(data.table)
-library(dtw)
-library(Rtsne) ##Rtsne 
+library(gplots)
+#library(dtw)
+#library(Rtsne) ##Rtsne 
+library(proxy)
+library(fastcluster)
+source("F:/DATA/R/Kees/1608_HicChipRNACor/3Main_Processing/HicChipRNACor_functionPack.r")
 setwd("/home/ahe/Analysis/201608_HicChipRnaCor/data/")
-
-#functions
-get_MarkMatrix=function(position_info,dbhandle,target_cell_type,target_markers){
-  tblname_list=paste(target_cell_type,target_markers,sep="_")
-  chr=position_info[1]
-  posstart=position_info[2]-500
-  posstopstart=position_info[3]-500
-  coverage_list=lapply(tblname_list,function(x){return(
-    dbGetQuery(dbhandle,paste("SELECT coverage FROM ",x," WHERE chr='",chr,"' AND start>",posstart," AND start<",posstopstart,sep="")))})
-  marker_matrix=do.call(cbind, coverage_list)
-  colnames(marker_matrix)=target_markers
-  return(marker_matrix)
-}
-
-#still working on the batch stuff
-get_MarkMatrix_batch=function(position_info,dbhandle,target_cell_type,target_markers){
-  tblname_list=paste(target_cell_type,target_markers,sep="_")
-  chr=position_info[,1]
-  posstart=position_info[,2]-500
-  posstopstart=position_info[,3]-500
-  #generate the commande
-  for(present_chr in unique(chr)){
-    command=paste(" WHERE chr=",present_chr)
-    for(numx in 1:nrow(position_info)){
-      command=paste(command," chr=",sep="")
-    }
-    coverage_list=lapply(tblname_list,function(x){return(
-      dbGetQuery(dbhandle,paste("SELECT coverage FROM ",x," WHERE chr='",chr,"' AND start>",posstart," AND start<",posstopstart,sep="")))})
-  }
-  marker_matrix=do.call(cbind, coverage_list)
-  rownames(marker_matrix)=target_markers
-  return(marker_matrix)
-}
-
-matrix_shrink=function(thematrix,threshold=0.1,getridofmid=T){
-  if(getridofmid){
-    thematrix=thematrix[seq(1,nrow(thematrix),2),]
-  }
-  therows=rowSums(thematrix)
-  wanted=sapply(1:(length(therows)-1),function(x){return(sum(therows[x:(x+1)]))})
-  wanted=c(wanted,1)
-  return(thematrix[wanted>threshold,])
-}
-
-dtw_1toMany=function(theone,themany,distmethod="Manhattan"){
-  return(sapply(themany,function(i){dtw(matrix_shrink(theone),matrix_shrink(i),dist.method = distmethod)$distance}))
-}
-
-dtw_distMatCreat=function(thelist,distmethod="Manhattan")
-{
-  m = diag(0, length(thelist))
-  sapply(1:(length(thelist)-1), function(i)
-  {
-    m[,i] <<- c(rep(0,i), dtw_1toMany(thelist[[i]],thelist[(i+1):length(thelist)],distmethod))
-  }) 
-  m= m + t(m)
-  return(m)
-}
-
-#pick target
-target_cell_type="K562"
-interactionlist_pos=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/K562/K562_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
-interactionlist_neg=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/K562/K562_25K_negative_loops.txt",stringsAsFactors = F,sep="\t")
 
 target_cell_type="GM12"
 interactionlist_pos=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/GM12878/GM12878_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
@@ -80,31 +21,58 @@ target_markers=c("RNA","CAGE","DNase","FAIRE","RRBS","ATF3","BCL3","BCLAF1","BHL
 
 dbhandle=dbConnect(SQLite(), dbname = '/home/ahe/Analysis/201608_HicChipRnaCor/data/ChIPnlike/database/tilingdata.sqlite')
 
-#get 500 samples to get a taste of dtw distribution in space
-#generate name list
-pos_samp_num=25
-neg_samp_num=25
-sampleset_500=rbind(interactionlist_pos[sample(nrow(interactionlist_pos),pos_samp_num),],interactionlist_neg[sample(nrow(interactionlist_neg),neg_samp_num),])
-matrixlist_500=lapply(1:nrow(sampleset_500),function(x){return(get_MarkMatrix(sampleset_500[x,],dbhandle,target_cell_type,target_markers))})
-shrinked_matrixlist_500=lapply(1:nrow(sampleset_500),function(x){return(matrix_shrink(matrixlist_500[[x]]))})
+#get 1000 samples for feature_lib build
+target_pos_list=interactionlist_pos[interactionlist_pos[,4]<200000,]
+target_neg_list=interactionlist_neg[interactionlist_neg[,4]<200000,]
+pos_samp_num=500
+neg_samp_num=500
+learning_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
+learning_list=lapply(1:nrow(learning_list_idx),function(x){return(get_MarkMatrix(learning_list_idx[x,],dbhandle,target_cell_type,target_markers))})
+#output matrix samples as csv 
+#for(i in 1:length(matrixlist_500)){
+#  write.csv(matrixlist_500[[i]],file=paste("sample_matrix_",i,".csv",sep=""))
+#}
+#historical sampleset: sampleset 50_short_1; sampleset 200_short_1 & 2
 
-#distance mastrix generation
-dis_matrix_500=dtw_distMatCreat(matrixlist_500)
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/dis_mastrix_50")
-breaks=seq(4,5,0.1)
-heatmap.2(log10(dis_matrix_500+1),col=colorRampPalette(c("yellow","red","black")),
-          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
-          lhei=c(1,5),lwid=c(1,5),margins = c(5.5,5.5))
+#initiate all necessary variable
+learning_list_feature_vec=c()
+row_vec=c()
+time_vec=c()
+featurelib_matrix=NA
+cluster_info=list("cluster"=0)
+#create feature list
+for(i in 1:length(learning_list_feature_vec)){
+  ptm <- proc.time()
+  list[learning_list_feature_vec[[i]],featurelib_matrix,cluster_info]=
+    MatrixScan_featureLibBuild_Advance(learning_list[[i]],wd=1,featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  row_vec[i]=nrow(learning_list[[i]])
+  time_vec[i]=(proc.time()-ptm)[3]
+  print(paste(i,"|",row_vec[i],"rows |",time_vec[i]))
+}
 
-#tsne mapping
-rtsne_out2=Rtsne(dis_matrix_500,dims=2,is_distance=T,perplexity=15)
-plot(rtsne_out2$Y,col=c(rep(1,25),rep(2,25)))
+#get 1000 samples for scanning
+target_pos_list=interactionlist_pos[interactionlist_pos[,4]<200000,]
+target_neg_list=interactionlist_neg[interactionlist_neg[,4]<200000,]
+pos_samp_num=500
+neg_samp_num=500
+scanning_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
+scanning_list=lapply(1:nrow(scanning_list_idx),function(x){return(get_MarkMatrix(scanning_list_idx[x,],dbhandle,target_cell_type,target_markers))})
 
-#time testing
-ptm <- proc.time()
-dtw(matrix_shrink(matrixlist_500[[1]]),matrix_shrink(matrixlist_500[[2]]))$distance
-proc.time() - ptm
+#initiate all necessary variable
+scanning_list_feature_vec=c()
+scan_row_vec=c()
+scan_time_vec=c()
+#featurelib_matrix=do.call(rbind,featurelib)
+#cluster_info=KmeanFeatureClustering(featurelib_matrix,as.integer(nrow(featurelib_matrix)/250))
+for(i in 1:length(scanning_list)){
+  ptm <- proc.time()
+  scanning_list_200_feature_vec[[i]]=MatrixScan_Advance2(scanning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.2)
+  scan_row_vec[i]=nrow(scanning_list[[i]])
+  scan_time_vec[i]=(proc.time()-ptm)[3]
+  print(paste(i,"|",scan_row_vec[i],"rows |",scan_time_vec[i]))
+}
 
-ptm <- proc.time()
-dtw(matrixlist_500[[1]],matrixlist_500[[2]])$distance
-proc.time() - ptm
+#pick target
+target_cell_type="K562"
+interactionlist_pos=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/K562/K562_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
+interactionlist_neg=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/K562/K562_25K_negative_loops.txt",stringsAsFactors = F,sep="\t")
