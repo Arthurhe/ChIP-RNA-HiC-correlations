@@ -1,8 +1,7 @@
 #these functions require the following libraries
 #library(proxy) #dist
 #library(fastcluster)
-
-for(i in list.files(path="F:/DATA/R/my_functions",full.names = T)){source(i)}
+#for(i in list.files(path="F:/DATA/R/my_functions",full.names = T)){source(i)}
 
 #################################
 #function in db_build
