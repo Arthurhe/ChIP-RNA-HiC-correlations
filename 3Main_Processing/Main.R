@@ -35,22 +35,6 @@ learning_list=lapply(1:nrow(learning_list_idx),function(x){return(get_MarkMatrix
 #}
 #historical sampleset: sampleset 50_short_1; sampleset 200_short_1 & 2
 
-#initiate all necessary variable
-learning_feature_vec=c()
-row_vec=c()
-time_vec=c()
-featurelib_matrix=NA
-cluster_info=list("cluster"=0)
-#create feature list
-for(i in 1:length(learning_list_idx)){
-  ptm <- proc.time()
-  list[learning_feature_vec[[i]],featurelib_matrix,cluster_info]=
-    MatrixScan_featureLibBuild_Advance(learning_list[[i]],wd=1,featurelib_matrix,cluster_info,distanceThreshold=0.25)
-  row_vec[i]=nrow(learning_list[[i]])
-  time_vec[i]=(proc.time()-ptm)[3]
-  print(paste(i,"|",row_vec[i],"rows |",time_vec[i]))
-}
-
 #get 1000 samples for scanning
 target_pos_list=interactionlist_pos[interactionlist_pos[,4]<200000,]
 target_neg_list=interactionlist_neg[interactionlist_neg[,4]<200000,]
@@ -58,20 +42,6 @@ pos_samp_num=500
 neg_samp_num=500
 scanning_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
 scanning_list=lapply(1:nrow(scanning_list_idx),function(x){return(get_MarkMatrix(scanning_list_idx[x,],dbhandle,target_cell_type,target_markers))})
-
-#initiate all necessary variable
-scanning_feature_vec=c()
-scan_row_vec=c()
-scan_time_vec=c()
-#featurelib_matrix=do.call(rbind,featurelib)
-#cluster_info=KmeanFeatureClustering(featurelib_matrix,as.integer(nrow(featurelib_matrix)/250))
-for(i in 1:length(scanning_list)){
-  ptm <- proc.time()
-  scanning_feature_vec[[i]]=MatrixScan_Advance2(scanning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.2)
-  scan_row_vec[i]=nrow(scanning_list[[i]])
-  scan_time_vec[i]=(proc.time()-ptm)[3]
-  print(paste(i,"|",scan_row_vec[i],"rows |",scan_time_vec[i]))
-}
 
 #pick target
 target_cell_type="K562" 
@@ -86,20 +56,35 @@ neg_samp_num=500
 K562_scanning_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
 K562_scanning_list=lapply(1:nrow(K562_scanning_list_idx),function(x){return(get_MarkMatrix(K562_scanning_list_idx[x,],dbhandle,target_cell_type,target_markers))})
 
+save(learning_list,scanning_list,K562_scanning_list,file="matrix_3000_short.Rdata")
+
+load("matrix_3000_short.Rdata")
 #initiate all necessary variable
+ptm <- proc.time()
+learning_feature_vec=c()
+scanning_feature_vec=c()
 K562_scanning_feature_vec=c()
-K562_scan_row_vec=c()
-K562_scan_time_vec=c()
-#featurelib_matrix=do.call(rbind,featurelib)
-#cluster_info=KmeanFeatureClustering(featurelib_matrix,as.integer(nrow(featurelib_matrix)/250))
-for(i in 1:length(K562_scanning_list_idx)){
-  ptm <- proc.time()
-  K562_scanning_feature_vec[[i]]=MatrixScan_Advance2(K562_scanning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.2)
-  K562_scan_row_vec[i]=nrow(scanning_list[[i]])
-  K562_scan_time_vec[i]=(proc.time()-ptm)[3]
-  print(paste(i,"|",scan_row_vec[i],"rows |",scan_time_vec[i]))
+featurelib_matrix=NA
+cluster_info=list("cluster"=0)
+#create feature list
+for(i in 1:length(learning_list)){
+  list[learning_feature_vec[[i]],featurelib_matrix,cluster_info]=
+    MatrixScan_featureLibBuild_Advance(learning_list[[i]],wd=1,featurelib_matrix,cluster_info,distanceThreshold=0.25)
+
 }
+print((proc.time()-ptm)[3])
+for(i in 1:length(scanning_list)){
+  scanning_feature_vec[[i]]=MatrixScan_Advance2(scanning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  K562_scanning_feature_vec[[i]]=MatrixScan_Advance2(K562_scanning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+}
+print((proc.time()-ptm)[3])
+save(featurelib_matrix,cluster_info,learning_feature_vec,scanning_feature_vec,K562_scanning_feature_vec,file="featureOn3000Short.Rdata")
 
-save(featurelib,scanning_feature_vec,K562_scanning_feature_vec,file="featureScanOn200Short2.Rdata")
 
+#examing the result of 1000+1000+1000 samples:
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureOn3000Short.Rdata")
+
+#featurelib_matrix=do.call(rbind,featurelib)
+#featurelib_matrix=apply(featurelib_matrix,2,function(x){x/mean(x)})
+d=dist(featurelib_matrix,method = "manhattan",upper = T) #euclidean
 

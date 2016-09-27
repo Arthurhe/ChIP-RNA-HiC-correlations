@@ -191,7 +191,7 @@ FindFeature_Advance2=function(feature,featurelib_matrix=NA,cluster_info=NA,dista
     })
     return(tagFeature_vec)
   }
-  else if(length(featurelib)>1){
+  else if(length(featurelib_matrix)>1){
     distance=dist(feature,featurelib_matrix,method = "manhattan")
     tagFeature_vec=sapply(1:nrow(feature),function(x){
       distance=dist(feature[x,],featurelib_matrix,method = "manhattan")
