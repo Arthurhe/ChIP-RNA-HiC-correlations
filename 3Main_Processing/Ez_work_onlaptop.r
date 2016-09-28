@@ -6,6 +6,7 @@ library(matrixStats)
 library(e1071)
 library(proxy) #dist
 library(fastcluster)
+library(cluster)
 source("F:/DATA/R/Kees/1608_HicChipRNACor/3Main_Processing/HicChipRNACor_functionPack.r")
 
 #pick target
@@ -127,7 +128,7 @@ heatmap.2(as.matrix(temp[1:200,]),
           trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
           lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
 
-#visualize faeture
+#visualize feature
 k=c()
 for(i in 1:max(cluster_idx)){k[i]=sum(cluster_idx==i)}
 p <- ggplot(data = k, aes(x = factor(gene,levels=c("H3f3a","H3f3b","H3f3c","H3f3a_optimized")), y = mean,
@@ -144,7 +145,7 @@ heatmap.2(as.matrix(temp),
 
 
 
-temp=svm(tf_idf_matrix[1:200,],c(rep(1,100),rep(0,100)),type="C-classification",cost=1000,scale=T)
+temp=svm(tf_idf_matrix,c(rep(1,500),rep(0,500)),type="C-classification",cost=1000,scale=T)
 prediction <- predict(temp, tf_idf_matrix)
 prediction = as.numeric(levels(prediction))[prediction]
 plot(prediction)
@@ -158,3 +159,37 @@ temp=kmeans(featurelib_matrix,10,iter.max = 100)
 distance=dist(featurelib_matrix,temp$centers,method = "euclidean")
 max(distance[(temp$cluster==1),1])
 min(distance[(temp$cluster!=1),1])
+
+
+#examing the result of 1000+1000+1000 samples:
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureOn11000Short.Rdata")
+
+#find unique feature on looping region
+alltruefeature=do.call(c,extrascanning_feature_vec[1:4000])
+alltruefeature=unique(alltruefeature)
+allfalsefeature=do.call(c,extrascanning_feature_vec[4001:8000])
+allfalsefeature=unique(allfalsefeature)
+trueUniquefaeture=union(setdiff(alltruefeature,allfalsefeature),setdiff(allfalsefeature,alltruefeature))
+
+d=dist(featurelib_matrix[trueUniquefaeture,],method = "manhattan",upper = T) 
+fit=hclust(d,method="complete") 
+cluster_idx <- as.vector(cutree(fit, h=1))
+clustering=rep(max(cluster_idx)+1,nrow(featurelib_matrix))
+clustering[trueUniquefaeture]=cluster_idx
+#clustering=clara(featurelib_matrix[trueUniquefaeture,], 1000, metric = "manhattan", stand=F, sample=50, medoids.x = F)
+featureMatrix=FeatureMatrixGenerator(c(extrascanning_feature_vec,learning_feature_vec,scanning_feature_vec,K562_scanning_feature_vec),nrow(featurelib_matrix),clustering) #clustering$clustering
+idf_vec=IDF_calculator(featureMatrix)
+tf_matrix=TF_calculator(featureMatrix)
+tf_idf_matrix=TF_IDF_calculator(tf_matrix,idf_vec)
+
+temp=svm(tf_idf_matrix[1:8000,],c(rep(1,4000),rep(0,4000)),type="C-classification",cost=10000,scale=F)
+prediction <- predict(temp, tf_idf_matrix)
+prediction = as.numeric(levels(prediction))[prediction]
+#plot(prediction,pch=19)
+
+nas=which(is.na(rowSums(tf_idf_matrix)))
+breakpoint=c(0,4000,8000,8500,9000,9500,10000,10500,11000)
+for(i in 1:(length(breakpoint)-1)){
+  predictedTure=sum(prediction[(breakpoint[i]+1-sum(nas<breakpoint[i])):(breakpoint[i+1]-sum(nas<breakpoint[i+1]))])
+  print(paste(predictedTure,breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])-predictedTure,breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])))
+}
