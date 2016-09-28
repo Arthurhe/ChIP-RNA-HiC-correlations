@@ -1,3 +1,6 @@
 data/*
 igv_tracks/*
+3Main_Processing/*.Rdata
+3Main_Processing/.Rhistory
+3Main_Processing/*.pdf
 
