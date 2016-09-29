@@ -8,11 +8,12 @@ def main():
     #seq_file = open("./data/GM12_ENCFF439LIW_rRNA_minus_RNA_calledRegions_peaks.bed")
 
     #ann_list, seq_list = parse(ann_file, seq_file)
-    ann_list = [(11, 15, "chr1"), (2, 7, "chr1"), (33, 70, "chr1"), (15, 500, "chr2")]
-    seq_list = [(3, 4, "chr1"), (4, 5, "chr1"), (8, 9, "chr1"), (13, 14, "chr1"), (15, 17, "chr1"), (22, 27, "chr1"), (40, 50, "chr1"), (333, 667, "chr2"), (42, 56, "chr3")]
+    ann_list = [(11, 15, "chr1"), (2, 8, "chr1"), (33, 70, "chr1"), (15, 500, "chr2")]
+    seq_list = [(3, 4, "chr1"), (5, 6, "chr1"), (8, 9, "chr1"), (13, 14, "chr1"), (15, 17, "chr1"), (22, 27, "chr1"), (40, 50, "chr1"), (55, 60, "chr1"), (7, 8, "chr1"), (70, 80, "chr1"), (333, 400, "chr2"), (450, 475, "chr2"), (42, 56, "chr3")]
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
-    compute_stats(ann_chroms, seq_chroms)
-    #compute_stats(ann_list, seq_list)
+    diffs = get_differences(ann_chroms, seq_chroms)
+    print diffs
+    #compute_stats(diffs)
 
     #for item in ann_list:
     #    print item
@@ -86,7 +87,7 @@ def get_chroms(ann_list, seq_list):
 
 # Input: Dictionaries containing chromosome positional information
 # Output: Average and SD of gaps between peaks within annotated genes
-def compute_stats(ann_chroms, seq_chroms):
+def get_differences(ann_chroms, seq_chroms):
     # Get common chromosome list for easier comparison in the next step
     common_chr = []
     if len(seq_chroms) > len(ann_chroms):
@@ -94,15 +95,18 @@ def compute_stats(ann_chroms, seq_chroms):
     else:
         common_chr = [item for item in ann_chroms if seq_chroms.get(item) != None]
 
+    diffs = []
+
     # Do the gene peak finding per chromosome
     for chrom in common_chr:
         chr_ann_list = ann_chroms[chrom]
         chr_seq_list = seq_chroms[chrom]
-
         ann_index = 0
         seq_index = 0
         ann_size = len(chr_ann_list)
         seq_size = len(chr_seq_list)
+
+        gene_peaks = []
 
         while True:
             if ann_index >= ann_size or seq_index >= seq_size:
@@ -113,16 +117,34 @@ def compute_stats(ann_chroms, seq_chroms):
 
             if seq_s < ann_s:
                 seq_index = seq_index + 1
+            elif seq_e <= ann_e:
+                gene_peaks.append(chr_seq_list[seq_index])
+                seq_index = seq_index + 1
             else:
-                if seq_e <= ann_e:
-                    print "+1"
-                    seq_index = seq_index + 1
-                    pass
-                else:
-                    ann_index = ann_index + 1
+                for diff in compute_differences(gene_peaks):
+                    diffs.append(diff)
+                del gene_peaks[:]
+                ann_index = ann_index + 1
 
-            print "asdf"
+        if len(gene_peaks) > 0:
+            for diff in compute_differences(gene_peaks):
+                diffs.append(diff)
+    return diffs
 
+# Input: List of peaks
+# Output: List of differences
+# Note: Let the peaks be A-B-C-D. This function will compute distances AB, BC,
+#       and CD. The 3 differences will be returned in a list.
+def compute_differences(lst):
+    size = len(lst)
+    index = 0
+    results = []
+    while index < size-1:
+        _, first_e = lst[index]
+        last_s, _ = lst[index+1]
+        results.append(last_s - first_e)
+        index = index + 1
+    return results
 
 if __name__ == "__main__":
     main()
