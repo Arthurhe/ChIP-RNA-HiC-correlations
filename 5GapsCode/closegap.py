@@ -3,16 +3,21 @@
 import re
 import numpy
 import math
+import argparse
 
 
 def main():
-    #ann_file = open("/home/brian/genes_cpy.txt", 'r')
-    #seq_file = open("./data/GM12_ENCFF439LIW_rRNA_minus_RNA_calledRegions_peaks.bed")
+    parser = argparse.ArgumentParser()
+    required = parser.add_argument_group("required arguments")
+    required.add_argument("-a", "--annotation", required=True, help="The annotation file to be used (expected .gtf format)")
+    required.add_argument("-b", "--bed", required=True, help=".bed file containing the peaks from sequencing data")
+    args = parser.parse_args()
+
+    ann_file = open(args.annotation, 'r')
+    seq_file = open(args.bed, 'r')
     results_file = open("merged.bed", 'w')
 
-    #ann_list, seq_list = parse(ann_file, seq_file)
-    ann_list = [(11, 15, "chr1"), (2, 8, "chr1"), (33, 70, "chr1"), (15, 500, "chr2")]
-    seq_list = [(3, 4, "chr1"), (5, 6, "chr1"), (8, 9, "chr1"), (13, 14, "chr1"), (15, 17, "chr1"), (22, 27, "chr1"), (40, 50, "chr1"), (55, 60, "chr1"), (7, 8, "chr1"), (70, 80, "chr1"), (333, 400, "chr2"), (450, 475, "chr2"), (42, 56, "chr3")]
+    ann_list, seq_list = parse(ann_file, seq_file)
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
     diffs = get_differences(ann_chroms, seq_chroms)
 
@@ -33,8 +38,8 @@ def main():
         start, end, chrom = item
         results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
 
-    #ann_file.close()
-    #seq_file.close()
+    ann_file.close()
+    seq_file.close()
     results_file.close()
 
 
@@ -77,7 +82,7 @@ def get_chroms(ann_list, seq_list):
     ann_chroms = {}
     seq_chroms = {}
     for item in ann_list:
-        ann_s, ann_e, ann_c = item
+        ann_s, ann_e, ann_c, _ = item
         if ann_chroms.get(ann_c) == None:
             ann_chroms[ann_c] = []
             ann_chroms[ann_c].append((ann_s, ann_e))
@@ -207,7 +212,6 @@ def join_gaps(seq_chroms, threshold):
         # Add merged chromosome peaks to the total list
         for item in chr_merged_list:
             total_merged_list.append(item)
-        print key
 
     return total_merged_list, processed_counter
 
