@@ -6,12 +6,13 @@ import math
 
 
 def main():
-    ann_file = open("/home/brian/genes_cpy.txt", 'r')
-    seq_file = open("./data/GM12_ENCFF439LIW_rRNA_minus_RNA_calledRegions_peaks.bed")
+    #ann_file = open("/home/brian/genes_cpy.txt", 'r')
+    #seq_file = open("./data/GM12_ENCFF439LIW_rRNA_minus_RNA_calledRegions_peaks.bed")
+    results_file = open("merged.bed", 'w')
 
-    ann_list, seq_list = parse(ann_file, seq_file)
-    #ann_list = [(11, 15, "chr1"), (2, 8, "chr1"), (33, 70, "chr1"), (15, 500, "chr2")]
-    #seq_list = [(3, 4, "chr1"), (5, 6, "chr1"), (8, 9, "chr1"), (13, 14, "chr1"), (15, 17, "chr1"), (22, 27, "chr1"), (40, 50, "chr1"), (55, 60, "chr1"), (7, 8, "chr1"), (70, 80, "chr1"), (333, 400, "chr2"), (450, 475, "chr2"), (42, 56, "chr3")]
+    #ann_list, seq_list = parse(ann_file, seq_file)
+    ann_list = [(11, 15, "chr1"), (2, 8, "chr1"), (33, 70, "chr1"), (15, 500, "chr2")]
+    seq_list = [(3, 4, "chr1"), (5, 6, "chr1"), (8, 9, "chr1"), (13, 14, "chr1"), (15, 17, "chr1"), (22, 27, "chr1"), (40, 50, "chr1"), (55, 60, "chr1"), (7, 8, "chr1"), (70, 80, "chr1"), (333, 400, "chr2"), (450, 475, "chr2"), (42, 56, "chr3")]
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
     diffs = get_differences(ann_chroms, seq_chroms)
 
@@ -23,18 +24,18 @@ def main():
     threshold_gapsize = numpyarr_sorted[threshold_index]
     print "Threshold gap size is: {}".format(threshold_gapsize)
 
-    #print
-    #for item in seq_chroms:
-    #    print seq_chroms[item]
+    # Merge the peaks according to the threshold gap size
+    merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
+    print "Finished processing {} peaks!".format(processed_counter)
 
-    #for item in ann_list:
-    #    print item
+    # Write results to file
+    for item in merged_list:
+        start, end, chrom = item
+        results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
 
-    #for item in seq_list:
-    #    print item
-
-    ann_file.close()
-    seq_file.close()
+    #ann_file.close()
+    #seq_file.close()
+    results_file.close()
 
 
 # Input: Annotation file (ann_file), Sequence/.bed file (seq_file)
@@ -67,6 +68,7 @@ def parse(ann_file, seq_file):
     
     return ann_list, seq_list
 
+
 # Input: Parsed lists from annotation and sequence files
 # Output: Dictionaries that map chromosome number to peak/annotation information
 def get_chroms(ann_list, seq_list):
@@ -75,7 +77,7 @@ def get_chroms(ann_list, seq_list):
     ann_chroms = {}
     seq_chroms = {}
     for item in ann_list:
-        ann_s, ann_e, ann_c, _ = item
+        ann_s, ann_e, ann_c = item
         if ann_chroms.get(ann_c) == None:
             ann_chroms[ann_c] = []
             ann_chroms[ann_c].append((ann_s, ann_e))
@@ -98,6 +100,7 @@ def get_chroms(ann_list, seq_list):
     # Note: The tuples in seq_chroms contain extra information needed for
     #       downstream processing: (start, end, within_gene_peak_bool, chr#)
     return ann_chroms, seq_chroms
+
 
 # Input: Dictionaries containing chromosome positional information
 # Output: Average and SD of gaps between peaks within annotated genes
@@ -146,6 +149,7 @@ def get_differences(ann_chroms, seq_chroms):
                 diffs.append(diff)
     return diffs
 
+
 # Input: List of peaks
 # Output: List of differences
 # Note: Let the peaks be A-B-C-D. This function will compute distances AB, BC,
@@ -162,16 +166,61 @@ def compute_differences(lst):
     return results
 
 
+# Input: Dictionary containing chromosome keys mapped to peak information
+#        (data structure returned from get_chroms)
+# Output: list of tuples containing merged peak information
+def join_gaps(seq_chroms, threshold):
+    total_merged_list = []
+    processed_counter = 0
 
-# Input: 2 peak tuples (start, end, chrom)
-# Output: 1 peak tuple (start, end, chrom)
+    # iterate through chromosomes
+    keys = seq_chroms.keys()
+    for key in keys:
+        peak_list = seq_chroms[key]
+        chr_merged_list = [] # stores tuples (start, end, chrom)
+        index = 0
+        num_peaks = len(peak_list)
+
+        working_peak = peak_list[0]
+        processed_counter = processed_counter + 1
+
+        # process peaks in a linear fashion
+        while index < num_peaks-1:
+            p1_s, p1_e, within_gene1, _ = working_peak
+            p2_s, p2_e, within_gene2, _ = peak_list[index+1]
+            processed_counter = processed_counter + 1
+            gap_d = p2_s - p1_e
+            if within_gene1 == True and within_gene2 == True:
+                working_peak = join(working_peak, peak_list[index+1])
+            elif gap_d <= threshold:
+                working_peak = join(working_peak, peak_list[index+1])
+            else:
+                wpeak_s, wpeak_e, _, chrom = working_peak
+                chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+                working_peak = peak_list[index+1]
+
+            index = index + 1
+
+        wpeak_s, wpeak_e, _, chrom = working_peak
+        chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+
+        # Add merged chromosome peaks to the total list
+        for item in chr_merged_list:
+            total_merged_list.append(item)
+        print key
+
+    return total_merged_list, processed_counter
+
+
+# Input: 2 peak tuples (start, end, within_gene_peak_bool, chrom)
+# Output: 1 working peak tuple (start, end, within_gene_peak_bool, chrom)
 # Note: Assumes we are linking end of peak1 to start of peak2. Assumes peaks are
 #       from the same chromosome
 def join(peak1, peak2):
-    p1_s, _, chrom = peak1
-    _, p2_e, _ = peak2
+    p1_s, _, _, chrom = peak1
+    _, p2_e, _, _ = peak2
 
-    ret_peak = (p1_s, p2_e, chrom)
+    return (p1_s, p2_e, False, chrom)
 
 
 if __name__ == "__main__":
