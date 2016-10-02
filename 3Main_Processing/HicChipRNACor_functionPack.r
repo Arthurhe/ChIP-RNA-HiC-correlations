@@ -210,28 +210,30 @@ FeatureMatrixGenerator=function(feature_vec_list,featureNum,cluster_idx=NULL){
   #feature_vec_list is a list of samples, each sample represented by a vector of features (the output of feature_vec_list)
   #cluster_idx is the index list of cluster of all feature, calculated by cluster algo
   sampleNum=length(feature_vec_list)
-  featureMatrix=matrix(0,sampleNum,featureNum)
-  for(i in 1:sampleNum){
-    feature_count_table=as.data.frame(table(feature_vec_list[i]))
-    feature_count_table[,1]=as.numeric(levels(feature_count_table[,1])[feature_count_table[,1]])#convert factor to numeric
-    for(x in 1:nrow(feature_count_table)){featureMatrix[i,feature_count_table[x,1]]=feature_count_table[x,2]}
-  }
   if(!is.null(cluster_idx)){
-    featureMatrix_merge=matrix(0,sampleNum,max(cluster_idx))
-    for(i in 1:max(cluster_idx)){
-      pick=which(cluster_idx==i)
-      if(length(pick)>1){featureMatrix_merge[,i]=rowSums(featureMatrix[,pick])
-      }else{featureMatrix_merge[,i]=featureMatrix[,pick]}
+    featureMatrix=matrix(0,sampleNum,max(cluster_idx))
+    for(i in 1:sampleNum){
+      feature_count_table=as.data.frame(table(feature_vec_list[i]))
+      feature_count_table[,1]=as.numeric(levels(feature_count_table[,1])[feature_count_table[,1]])#convert factor to numeric
+      for(x in 1:nrow(feature_count_table)){featureMatrix[i,cluster_idx[feature_count_table[x,1]]]=featureMatrix[i,cluster_idx[feature_count_table[x,1]]]+feature_count_table[x,2]}
     }
-    featureMatrix=featureMatrix_merge
+  }
+  else{
+    featureMatrix=matrix(0,sampleNum,featureNum)
+    for(i in 1:sampleNum){
+      feature_count_table=as.data.frame(table(feature_vec_list[i]))
+      feature_count_table[,1]=as.numeric(levels(feature_count_table[,1])[feature_count_table[,1]])#convert factor to numeric
+      for(x in 1:nrow(feature_count_table)){featureMatrix[i,feature_count_table[x,1]]=feature_count_table[x,2]}
+    }
   }
   return(featureMatrix)
 }
 
-IDF_calculator=function(featureMatrix){
+IDF_calculator=function(featureMatrix,ignore=NULL){
   #count idf (inverse document frequency) for each feature in featureMatrix
   #featureMatrix is a matrix showing times of apperance of each feature in each sample
   idf=log10(colSums(featureMatrix)/colSums(featureMatrix>0))
+  idf[ignore]=0
   return(idf)
 }
 
@@ -246,4 +248,87 @@ TF_IDF_calculator=function(tf,idf){
   #count tf-idf (term frequency-inverse document frequency) for each feature in featureMatrix
   tf_idf=t(apply(tf,1,function(x){x*idf}))
   return(tf_idf)
+}
+
+FeatureDistributionListGenrator_relative=function(positive_sample_list,cluster_idx){
+  featureDistriMatrix=matrix(0,max(cluster_idx),100)
+}
+
+FeatureDistriListGenrator_abs=function(sample_list,cluster_idx){
+  featureDistriList=vector(mode="list", length=max(cluster_idx))#initialize list of vector
+  for(i in 1:length(sample_list)){
+    currentFeatureVec=cluster_idx[sample_list[[i]]]
+    featurePresent=unique(currentFeatureVec)
+    for(k in featurePresent){
+      featurePosi=pmin(which(currentFeatureVec==k),length(currentFeatureVec)+1-which(currentFeatureVec==k))
+      featureDistriList[[k]]=c(featureDistriList[[k]],featurePosi)
+    }
+  }
+  #stat & find peak
+  #two vector not same length
+  for(k in 1:max(cluster_idx)){
+    featureDistriList[[k]]=Feature_posistat_vec(posifeatureDistriList[[k]])
+    
+  }
+  return(featureDistriList)
+}
+
+
+
+FeaturePositionScoreMatrixGenerator=function(learning_feature_vec,cluster_idx,featureDistriList){
+  sampleNum=length(learning_feature_vec)
+  featureMatrix=matrix(0,sampleNum,max(cluster_idx))
+  for(i in 1:length(learning_feature_vec)){
+    currentFeatureVec=cluster_idx[learning_feature_vec[[i]]]
+    featurePresent=unique(currentFeatureVec)
+    for(k in featurePresent){
+      featurePosi=pmin(which(currentFeatureVec==k),length(currentFeatureVec)+1-which(currentFeatureVec==k))
+      featureMatrix[i,k]=sum(featureDistriList[[k]][featurePosi],na.rm = T)
+    }
+  }
+  return(featureMatrix)
+}
+
+Feature_numstat_vec=function(featurevec,featurenum){
+  #return a vector for the stat of features in a feature vector
+  feature_tbl=Vector_stat_table(featurevec)
+  feature_stat=rep(0,featurenum+1)
+  for(x in 2:nrow(feature_tbl)){feature_stat[feature_tbl[x,1]]=feature_tbl[x,2]}
+  feature_stat[featurenum+1]=feature_tbl[1,1]
+  return(feature_stat)
+}
+
+Feature_posistat_vec=function(featurePosiVec){
+  if(length(featurePosiVec)==0){return(0)}
+  max_length=max(featurePosiVec)
+  feature_posi_tbl=Vector_stat_table(featurePosiVec)
+  feature_posi_stat=rep(0,max_length)
+  for(x in 1:nrow(feature_posi_tbl)){feature_posi_stat[feature_posi_tbl[x,1]]=feature_posi_tbl[x,2]}
+  return(feature_posi_stat)
+}
+
+######################
+#General function 
+General_matrix2table=function(target){
+  #a general function to convert matrix into table,
+  #with rownames of the matrix in the 1st col of table
+  #colnames of the matrix in the 2nd col of table
+  #values in the 3rd col
+  result=lapply(1:nrow(target),function(r){return(cbind(rep(rownames(target)[r],ncol(target)),colnames(target),t(target[r,])))})
+  result=do.call(rbind,result)
+  result=as.data.frame(result,stringsAsFactors = F)
+  result[,3]=as.numeric(result[,3])
+  colnames(result)=c("rname","cname","val")
+  rownames(result)=NULL
+  return(result)
+}
+
+substrRight =function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+Vector_stat_table=function(vec){
+  vec_tbl=as.data.frame(table(vec))
+  vec_tbl[,1] <- as.numeric(as.character(vec_tbl[,1]))
+  return(vec_tbl)
 }

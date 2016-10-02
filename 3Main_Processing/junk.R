@@ -103,6 +103,44 @@ FindFeature=function(feature,featurelib,distanceThreshold){
   else{return(0)}
 }
 
+FeatureDistributionListGenrator_abs=function(positive_sample_list,negative_sample_list,cluster_idx){
+  featureDistriList=c()
+  posifeatureDistriList=vector(mode="list", length=max(cluster_idx))#initialize list of vector
+  posifeaturePresentNum=rep(0,max(cluster_idx))
+  negfeatureDistriList=vector(mode="list", length=max(cluster_idx))
+  negfeaturePresentNum=rep(0,max(cluster_idx))
+  #gather postitional infor
+  for(i in 1:length(positive_sample_list)){
+    currentFeatureVec=cluster_idx[positive_sample_list[[i]]]
+    featurePresent=unique(currentFeatureVec)
+    posifeaturePresentNum[featurePresent]=posifeaturePresentNum[featurePresent]+1
+    for(k in featurePresent){
+      featurePosi=pmin(which(currentFeatureVec==k),length(currentFeatureVec)+1-which(currentFeatureVec==k))
+      posifeatureDistriList[[k]]=c(posifeatureDistriList[[k]],featurePosi)
+    }
+  }
+  for(i in 1:length(negative_sample_list)){
+    currentFeatureVec=cluster_idx[negative_sample_list[[i]]]
+    featurePresent=unique(currentFeatureVec)
+    negfeaturePresentNum[featurePresent]=negfeaturePresentNum[featurePresent]+1
+    for(k in featurePresent){
+      featurePosi=pmin(which(currentFeatureVec==k),length(currentFeatureVec)+1-which(currentFeatureVec==k))
+      negfeatureDistriList[[k]]=c(negfeatureDistriList[[k]],featurePosi)
+    }
+  }
+  #stat & smooth
+  #two vector not same length
+  for(k in 1:max(cluster_idx)){
+    vec1=Feature_posistat_vec(posifeatureDistriList[[k]])/posifeaturePresentNum[k]
+    vec2=Feature_posistat_vec(negfeatureDistriList[[k]])/negfeaturePresentNum[k]
+    if(length(vec1)>length(vec2)){vec2=c(vec2,rep(0,length(vec1)-length(vec2)))}
+    if(length(vec1)<length(vec2)){vec1=c(vec1,rep(0,length(vec2)-length(vec1)))}
+    featureDistriList[[k]]=vec1-vec2
+  }
+  return(featureDistriList)
+}
+
+
 #####################################################
 #DMD
 #check DMD
@@ -169,3 +207,115 @@ proc.time() - ptm
 ptm <- proc.time()
 dtw(matrixlist_500[[1]],matrixlist_500[[2]])$distance
 proc.time() - ptm
+
+
+
+feature build_scan_analysis
+#build feature set in sampleset 200_short_1
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/matrix_200_short.rdata")
+load("~/Analysis/201608_HicChipRnaCor/data/matrix_200_short.rdata")
+learning_list_200=matrixlist_500
+
+#initiate all necessary variable
+learning_list_200_feature_vec=c()
+row_vec=c()
+time_vec=c()
+featurelib_matrix=NA
+cluster_info=list("cluster"=0)
+#create feature list
+for(i in 1:length(learning_list_200)){
+  ptm <- proc.time()
+  list[learning_list_200_feature_vec[[i]],featurelib_matrix,cluster_info]=MatrixScan_featureLibBuild_Advance(learning_list_200[[i]],wd=1,featurelib_matrix,cluster_info,distanceThreshold=0.2)
+  row_vec[i]=nrow(learning_list_200[[i]])
+  time_vec[i]=(proc.time()-ptm)[3]
+  print(paste(i,"|",row_vec[i],"rows |",time_vec[i]))
+}
+save(featurelib,learning_list_200_feature_vec,row_vec,time_vec,file="featureAnaOn200Short.Rdata")
+
+#scan feature set on sampleset 200_short_2
+load("~/Analysis/201608_HicChipRnaCor/data/matrix_200_short_2.rdata")
+load("~/Analysis/201608_HicChipRnaCor/data/featureAnaOn200Short.Rdata")
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureAnaOn200Short.Rdata")
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/matrix_200_short_2.rdata")
+
+#initiate all necessary variable
+scanning_list_200_feature_vec=c()
+scan_row_vec=c()
+scan_time_vec=c()
+#featurelib_matrix=do.call(rbind,featurelib)
+#cluster_info=KmeanFeatureClustering(featurelib_matrix,as.integer(nrow(featurelib_matrix)/250))
+for(i in 1:length(matrixlist_500)){
+  ptm <- proc.time()
+  scanning_list_200_feature_vec[[i]]=MatrixScan_Advance2(matrixlist_500[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.2)
+  scan_row_vec[i]=nrow(matrixlist_500[[i]])
+  scan_time_vec[i]=(proc.time()-ptm)[3]
+  print(paste(i,"|",scan_row_vec[i],"rows |",scan_time_vec[i]))
+}
+save(featurelib,scanning_list_200_feature_vec,scan_row_vec,scan_time_vec,file="featureScanOn200Short2.Rdata")
+
+for(i in 1:length(scanning_list_200_feature_vec)){if(sum(scanning_list_200_feature_vec[[i]]!=learning_list_200_feature_vec[[i]])!=0){print(i)}}
+
+
+#examing the result of 200+200 samples:
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureAnaOn200Short.Rdata")
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureScanOn200Short2.Rdata")
+
+#featurelib_matrix=do.call(rbind,featurelib)
+#featurelib_matrix=apply(featurelib_matrix,2,function(x){x/mean(x)})
+d=dist(featurelib_matrix,method = "manhattan",upper = T) #euclidean
+#system.time(d<-dist(featurelib_matrix,method = "manhattan",upper = T))
+fit=hclust(d,method="complete") 
+cluster_idx <- as.vector(cutree(fit, 100))
+#c(learning_list_200_feature_vec,scanning_list_200_feature_vec)
+featureMatrix=FeatureMatrixGenerator(learning_list_200_feature_vec,nrow(featurelib_matrix),cluster_idx)
+idf_vec=IDF_calculator(featureMatrix)
+tf_matrix=TF_calculator(featureMatrix)
+tf_idf_matrix=TF_IDF_calculator(tf_matrix,idf_vec)
+#tf_idf_matrix=tf_idf_matrix[rowSums(tf_idf_matrix)!=0,colSums(tf_idf_matrix)!=0]
+
+#visualize the feature belonging
+heatmap.2(tf_idf_matrix,breaks=seq(0,0.5,0.025),
+          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
+          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
+          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
+
+temp=cbind(tf_idf_matrix[,colSums(tf_idf_matrix[1:100,])-colSums(tf_idf_matrix[101:200,])>0.1],
+           tf_idf_matrix[,colSums(tf_idf_matrix[1:100,])-colSums(tf_idf_matrix[101:200,])<(-0.1)])
+
+heatmap.2(as.matrix(temp[1:200,]),
+          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
+          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
+          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
+
+#visualize feature
+k=c()
+for(i in 1:max(cluster_idx)){k[i]=sum(cluster_idx==i)}
+p <- ggplot(data = k, aes(x = factor(gene,levels=c("H3f3a","H3f3b","H3f3c","H3f3a_optimized")), y = mean,
+                          fill = factor(celltype,levels=c("WT","KO","OE"))))
+p + geom_bar(stat = "identity",position = position_dodge(0.9)) +  scale_fill_brewer(palette="Set1",name = "celltype")+
+  labs(x = "gene", y = "normalized RNA-seq count") +
+  ggtitle("Gene expression level of H3f3 genes")
+
+temp=featurelib_matrix[cluster_idx==5,]
+heatmap.2(as.matrix(temp),
+          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
+          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
+          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
+
+
+
+temp=svm(tf_idf_matrix,c(rep(1,500),rep(0,500)),type="C-classification",cost=1000,scale=T)
+prediction <- predict(temp, tf_idf_matrix)
+prediction = as.numeric(levels(prediction))[prediction]
+plot(prediction)
+sum(prediction[c(201:300)]>0.5)
+sum(prediction[c(301:400)]<0.5,na.rm = T)
+tuned=tune(svm,tf_idf_matrix[1:200,],c(rep(1,100),rep(0,100)),ranges = list(cost=c(0.001,0.01,0.1,0,1,10,100,1000)))
+
+#test on kmean
+
+temp=kmeans(featurelib_matrix,10,iter.max = 100)
+distance=dist(featurelib_matrix,temp$centers,method = "euclidean")
+max(distance[(temp$cluster==1),1])
+min(distance[(temp$cluster!=1),1])
+

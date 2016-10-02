@@ -51,145 +51,75 @@ for(i in 1:50){
 }
 
 #################################################
-#feature build_scan_analysis
-#build feature set in sampleset 200_short_1
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/matrix_200_short.rdata")
-load("~/Analysis/201608_HicChipRnaCor/data/matrix_200_short.rdata")
-learning_list_200=matrixlist_500
+#examing the result of 15000 samples:
+load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureOn15000Short.Rdata")
+learning_feature_vec[2001:10000]=scanning_feature_vec[2001:10000]
+#find unique feature on looping region #filter 1
+alltruefeature=do.call(c,learning_feature_vec[1001:5000])
+allfalsefeature=do.call(c,learning_feature_vec[5001:9000])
+feature_stat_pos=Feature_numstat_vec(alltruefeature,nrow(featurelib_matrix))
+feature_stat_neg=Feature_numstat_vec(allfalsefeature,nrow(featurelib_matrix))
+uniqueFeature=which(abs(log10((feature_stat_pos)/(feature_stat_neg)))>=1 & (feature_stat_pos+feature_stat_neg)>=5)
 
-#initiate all necessary variable
-learning_list_200_feature_vec=c()
-row_vec=c()
-time_vec=c()
-featurelib_matrix=NA
-cluster_info=list("cluster"=0)
-#create feature list
-for(i in 1:length(learning_list_200)){
-  ptm <- proc.time()
-  list[learning_list_200_feature_vec[[i]],featurelib_matrix,cluster_info]=MatrixScan_featureLibBuild_Advance(learning_list_200[[i]],wd=1,featurelib_matrix,cluster_info,distanceThreshold=0.2)
-  row_vec[i]=nrow(learning_list_200[[i]])
-  time_vec[i]=(proc.time()-ptm)[3]
-  print(paste(i,"|",row_vec[i],"rows |",time_vec[i]))
-}
-save(featurelib,learning_list_200_feature_vec,row_vec,time_vec,file="featureAnaOn200Short.Rdata")
-
-#scan feature set on sampleset 200_short_2
-load("~/Analysis/201608_HicChipRnaCor/data/matrix_200_short_2.rdata")
-load("~/Analysis/201608_HicChipRnaCor/data/featureAnaOn200Short.Rdata")
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureAnaOn200Short.Rdata")
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/matrix_200_short_2.rdata")
-
-#initiate all necessary variable
-scanning_list_200_feature_vec=c()
-scan_row_vec=c()
-scan_time_vec=c()
-#featurelib_matrix=do.call(rbind,featurelib)
-#cluster_info=KmeanFeatureClustering(featurelib_matrix,as.integer(nrow(featurelib_matrix)/250))
-for(i in 1:length(matrixlist_500)){
-  ptm <- proc.time()
-  scanning_list_200_feature_vec[[i]]=MatrixScan_Advance2(matrixlist_500[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.2)
-  scan_row_vec[i]=nrow(matrixlist_500[[i]])
-  scan_time_vec[i]=(proc.time()-ptm)[3]
-  print(paste(i,"|",scan_row_vec[i],"rows |",scan_time_vec[i]))
-}
-save(featurelib,scanning_list_200_feature_vec,scan_row_vec,scan_time_vec,file="featureScanOn200Short2.Rdata")
-
-for(i in 1:length(scanning_list_200_feature_vec)){if(sum(scanning_list_200_feature_vec[[i]]!=learning_list_200_feature_vec[[i]])!=0){print(i)}}
-
-
-#examing the result of 200+200 samples:
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureAnaOn200Short.Rdata")
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureScanOn200Short2.Rdata")
-
-#featurelib_matrix=do.call(rbind,featurelib)
-#featurelib_matrix=apply(featurelib_matrix,2,function(x){x/mean(x)})
-d=dist(featurelib_matrix,method = "manhattan",upper = T) #euclidean
-#system.time(d<-dist(featurelib_matrix,method = "manhattan",upper = T))
+#adding none unique feature
+#calculate the important centers
+d=dist(featurelib_matrix[uniqueFeature,],method = "manhattan",upper = T) 
 fit=hclust(d,method="complete") 
-cluster_idx <- as.vector(cutree(fit, 100))
-#c(learning_list_200_feature_vec,scanning_list_200_feature_vec)
-featureMatrix=FeatureMatrixGenerator(learning_list_200_feature_vec,nrow(featurelib_matrix),cluster_idx)
-idf_vec=IDF_calculator(featureMatrix)
-tf_matrix=TF_calculator(featureMatrix)
-tf_idf_matrix=TF_IDF_calculator(tf_matrix,idf_vec)
-#tf_idf_matrix=tf_idf_matrix[rowSums(tf_idf_matrix)!=0,colSums(tf_idf_matrix)!=0]
+rm(d)
+cluster_idx <- as.vector(cutree(fit, h=0.3))
+#calculate the cluster_centers
+uniqueFeatureCenters=GetGroupCenter(featurelib_matrix[uniqueFeature,],cluster_idx)
+#feature assign to centers
+d=dist(featurelib_matrix,uniqueFeatureCenters,method = "manhattan")
+cluster_idx=apply(d,1,which.min)*(rowMins(d)<=0.25)
+cluster_idx[cluster_idx==0]=max(cluster_idx)+1
+#sum(cluster_idx!=max(cluster_idx))
 
-#visualize the feature belonging
-heatmap.2(tf_idf_matrix,breaks=seq(0,0.5,0.025),
-          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
-          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
-          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
+#only uniqueFeature #best
+cluster_idx=rep(0,nrow(featurelib_matrix))
+cluster_idx[uniqueFeature]=1:length(uniqueFeature)
+cluster_idx[cluster_idx==0]=max(cluster_idx)+1
 
-temp=cbind(tf_idf_matrix[,colSums(tf_idf_matrix[1:100,])-colSums(tf_idf_matrix[101:200,])>0.1],
-           tf_idf_matrix[,colSums(tf_idf_matrix[1:100,])-colSums(tf_idf_matrix[101:200,])<(-0.1)])
+#positional calculation
+posfeatureDistriList=FeatureDistriListGenrator_abs(learning_feature_vec[1001:5000],cluster_idx)
+negfeatureDistriList=FeatureDistriListGenrator_abs(learning_feature_vec[5001:9000],cluster_idx)
 
-heatmap.2(as.matrix(temp[1:200,]),
-          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
-          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
-          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
+featureMatrix=FeaturePositionScoreMatrixGenerator(c(learning_feature_vec,K562_scanning_feature_vec),cluster_idx,featureDistriList)
+featureMatrix=featureMatrix[,-max(cluster_idx)]
 
-#visualize feature
-k=c()
-for(i in 1:max(cluster_idx)){k[i]=sum(cluster_idx==i)}
-p <- ggplot(data = k, aes(x = factor(gene,levels=c("H3f3a","H3f3b","H3f3c","H3f3a_optimized")), y = mean,
-                          fill = factor(celltype,levels=c("WT","KO","OE"))))
-p + geom_bar(stat = "identity",position = position_dodge(0.9)) +  scale_fill_brewer(palette="Set1",name = "celltype")+
-  labs(x = "gene", y = "normalized RNA-seq count") +
-  ggtitle("Gene expression level of H3f3 genes")
-
-temp=featurelib_matrix[cluster_idx==5,]
-heatmap.2(as.matrix(temp),
-          col=colorRampPalette(c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF","#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026")),
-          trace="none",density.info="histogram",Colv=F,Rowv=F,notecol="black",dendrogram = "none",
-          lhei=c(1,3),lwid=c(1,3),margins = c(5,5))
-
-
-
-temp=svm(tf_idf_matrix,c(rep(1,500),rep(0,500)),type="C-classification",cost=1000,scale=T)
-prediction <- predict(temp, tf_idf_matrix)
-prediction = as.numeric(levels(prediction))[prediction]
-plot(prediction)
-sum(prediction[c(201:300)]>0.5)
-sum(prediction[c(301:400)]<0.5,na.rm = T)
-tuned=tune(svm,tf_idf_matrix[1:200,],c(rep(1,100),rep(0,100)),ranges = list(cost=c(0.001,0.01,0.1,0,1,10,100,1000)))
-
-#test on kmean
-
-temp=kmeans(featurelib_matrix,10,iter.max = 100)
-distance=dist(featurelib_matrix,temp$centers,method = "euclidean")
-max(distance[(temp$cluster==1),1])
-min(distance[(temp$cluster!=1),1])
-
-
-#examing the result of 1000+1000+1000 samples:
-load("F:/DATA/R/Kees/1608_HicChipRNACor/data/uploading/featureOn11000Short.Rdata")
-
-#find unique feature on looping region
-alltruefeature=do.call(c,extrascanning_feature_vec[1:4000])
-alltruefeature=unique(alltruefeature)
-allfalsefeature=do.call(c,extrascanning_feature_vec[4001:8000])
-allfalsefeature=unique(allfalsefeature)
-trueUniquefaeture=union(setdiff(alltruefeature,allfalsefeature),setdiff(allfalsefeature,alltruefeature))
-
-d=dist(featurelib_matrix[trueUniquefaeture,],method = "manhattan",upper = T) 
-fit=hclust(d,method="complete") 
-cluster_idx <- as.vector(cutree(fit, h=1))
-clustering=rep(max(cluster_idx)+1,nrow(featurelib_matrix))
-clustering[trueUniquefaeture]=cluster_idx
+#feature score calculation for each sample
 #clustering=clara(featurelib_matrix[trueUniquefaeture,], 1000, metric = "manhattan", stand=F, sample=50, medoids.x = F)
-featureMatrix=FeatureMatrixGenerator(c(extrascanning_feature_vec,learning_feature_vec,scanning_feature_vec,K562_scanning_feature_vec),nrow(featurelib_matrix),clustering) #clustering$clustering
-idf_vec=IDF_calculator(featureMatrix)
+featureMatrix=FeatureMatrixGenerator(c(learning_feature_vec,K562_scanning_feature_vec),nrow(featurelib_matrix),cluster_idx) #clustering$clustering
+cluster_specificity=log2(colSums(featureMatrix[1001:5000,],na.rm = T)/colSums(featureMatrix[5001:9000,],na.rm = T))
+ignore=which(abs(cluster_specificity)<2)
 tf_matrix=TF_calculator(featureMatrix)
+
+#idf is useless here
+idf_vec=IDF_calculator(featureMatrix)
 tf_idf_matrix=TF_IDF_calculator(tf_matrix,idf_vec)
+featureMatrix=tf_idf_matrix
 
-temp=svm(tf_idf_matrix[1:8000,],c(rep(1,4000),rep(0,4000)),type="C-classification",cost=10000,scale=F)
-prediction <- predict(temp, tf_idf_matrix)
+#svm start
+temp=svm(featureMatrix[1001:9000,],c(rep("1",4000),rep("0",4000)),type="C-classification",cost=1000,scale=F,probability = T)
+prediction <- predict(temp, featureMatrix, probability = T)
+probability=attr(prediction, "probabilities")[,1]
+plot(probability,pch=19,cex=0.6)
 prediction = as.numeric(levels(prediction))[prediction]
-#plot(prediction,pch=19)
 
-nas=which(is.na(rowSums(tf_idf_matrix)))
-breakpoint=c(0,4000,8000,8500,9000,9500,10000,10500,11000)
+nas=which(is.na(rowSums(featureMatrix)))
+breakpoint=c(0,1000,5000,9000,10000,12500,15000)
 for(i in 1:(length(breakpoint)-1)){
   predictedTure=sum(prediction[(breakpoint[i]+1-sum(nas<breakpoint[i])):(breakpoint[i+1]-sum(nas<breakpoint[i+1]))])
   print(paste(predictedTure,breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])-predictedTure,breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])))
 }
+
+plot(sort(log2(colMeans(featureMatrix[1:4000,],na.rm = T)-colMeans(featureMatrix[4001:8000,],na.rm = T))))
+
+
+
+
+
+
+temp=svm(tf_idf_matrix[1:8000,],c(rep(1,4000),rep(0,4000)),cost=10000,scale=F)
+prediction <- predict(temp, tf_idf_matrix)
+plot(prediction,pch=19)

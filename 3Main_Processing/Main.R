@@ -48,7 +48,7 @@ neg_samp_num=2500
 K562_scanning_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
 K562_scanning_list=lapply(1:nrow(K562_scanning_list_idx),function(x){return(get_MarkMatrix(K562_scanning_list_idx[x,],dbhandle,target_cell_type,target_markers))})
 
-save(learning_list,K562_scanning_list,file="matrix_11000_short.Rdata")
+save(learning_list,K562_scanning_list,file="matrix_15000_short.Rdata")
 
 #load("matrix_3000_short.Rdata")
 #initiate all necessary variable
@@ -62,13 +62,15 @@ cluster_info=list("cluster"=0)
 for(i in 1:2000){
   list[learning_feature_vec[[i]],featurelib_matrix,cluster_info]=
     MatrixScan_featureLibBuild_Advance(learning_list[[i]],wd=1,featurelib_matrix,cluster_info,distanceThreshold=0.25)
-
+  print(i)
 }
 for(i in 2001:10000){
-  scanning_feature_vec[[i]]=MatrixScan_Advance2(learning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  learning_feature_vec[[i]]=MatrixScan_Advance2(learning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  print(i+2000)
 }
 
 for(i in 1:length(K562_scanning_list)){
   K562_scanning_feature_vec[[i]]=MatrixScan_Advance2(K562_scanning_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  print(i+10000)
 }
-save(featurelib_matrix,cluster_info,learning_feature_vec,scanning_feature_vec,K562_scanning_feature_vec,file="featureOn11000Short.Rdata")
+save(featurelib_matrix,cluster_info,learning_feature_vec,K562_scanning_feature_vec,file="featureOn15000Short.Rdata")
