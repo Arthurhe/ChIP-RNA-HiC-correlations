@@ -17,7 +17,8 @@ def main():
     seq_file = open(args.bed, 'r')
     results_file = open("merged.bed", 'w')
 
-    ann_list, seq_list = parse(ann_file, seq_file)
+    ann_list, seq_list, peak_counter = parse(ann_file, seq_file)
+    print "Total number of peaks in .bed file: {}".format(peak_counter)
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
     diffs = get_differences(ann_chroms, seq_chroms)
 
@@ -33,6 +34,11 @@ def main():
     merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
     print "Finished processing {} peaks!".format(processed_counter)
 
+    if processed_counter == peak_counter:
+        print "All peaks have been acounted for."
+    else:
+        print "CAUTION: Some peaks were skipped!!"
+
     # Write results to file
     for item in merged_list:
         start, end, chrom = item
@@ -46,6 +52,7 @@ def main():
 # Input: Annotation file (ann_file), Sequence/.bed file (seq_file)
 # Output: Two lists containing tuples of (start, end, +/-), one for each file
 def parse(ann_file, seq_file):
+    peak_counter = 0
     ann_list = []
     seq_list = []
     ann_expr = re.compile("(chr[0-9XYM][0-9XYM]*)\t.*\t([0-9]*)\t([0-9]*)\t.*\t([+-])")
@@ -63,15 +70,16 @@ def parse(ann_file, seq_file):
         ann_list.append(ret_tup)
 
     for line in seq_file:
+        peak_counter = peak_counter+1
         searchobj = re.search(seq_expr, line)
         chrom = searchobj.group(1)
         start = int(searchobj.group(2))
         end = int(searchobj.group(3))
-        
+
         ret_tup = (start, end, chrom)
         seq_list.append(ret_tup)
-    
-    return ann_list, seq_list
+
+    return ann_list, seq_list, peak_counter
 
 
 # Input: Parsed lists from annotation and sequence files
@@ -221,10 +229,14 @@ def join_gaps(seq_chroms, threshold):
 # Note: Assumes we are linking end of peak1 to start of peak2. Assumes peaks are
 #       from the same chromosome
 def join(peak1, peak2):
-    p1_s, _, _, chrom = peak1
+    p1_s, _, within_gene_bool, chrom = peak1
     _, p2_e, _, _ = peak2
 
-    return (p1_s, p2_e, False, chrom)
+    ret_bool = False
+    if within_gene_bool == True:
+        ret_bool = True
+
+    return (p1_s, p2_e, ret_bool, chrom)
 
 
 if __name__ == "__main__":
