@@ -22,27 +22,44 @@ def main():
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
     diffs = get_differences(ann_chroms, seq_chroms)
 
-    # Determine threshold gap size
+    zero_counter = 0
+    one_counter = 0
+    multi_counter = 0
+    for chrom in seq_chroms:
+        chr_list = seq_chroms[chrom]
+        for item in chr_list:
+            a, b, c, d = item
+            if len(c) == 0:
+                zero_counter = zero_counter + 1
+            if len(c) == 1:
+                one_counter = one_counter + 1
+            if len(c) > 1:
+                multi_counter = multi_counter + 1
+                print item
+    print "0: {}\t1: {}\t2: {}".format(zero_counter, one_counter, multi_counter)
+    print "Total: {}".format(one_counter + zero_counter + multi_counter)
+
+    ## Determine threshold gap size
     numpyarr = numpy.array(diffs)
     numpyarr_sorted = numpy.sort(numpyarr)
     arrlen = numpy.size(numpyarr_sorted)
-    threshold_index = int(math.floor(0.1*arrlen)) # 10% threshold
+    threshold_index = int(math.floor(0.1 * arrlen))  # 10% threshold
     threshold_gapsize = numpyarr_sorted[threshold_index]
     print "Threshold gap size is: {}".format(threshold_gapsize)
 
-    # Merge the peaks according to the threshold gap size
-    merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
-    print "Finished processing {} peaks!".format(processed_counter)
+    ## Merge the peaks according to the threshold gap size
+    #merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
+    #print "Finished processing {} peaks!".format(processed_counter)
 
-    if processed_counter == peak_counter:
-        print "All peaks have been acounted for."
-    else:
-        print "CAUTION: Some peaks were skipped!!"
+    #if processed_counter == peak_counter:
+    #    print "All peaks have been acounted for."
+    #else:
+    #    print "CAUTION: Some peaks were skipped!!"
 
-    # Write results to file
-    for item in merged_list:
-        start, end, chrom = item
-        results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
+    ## Write results to file
+    #for item in merged_list:
+    #    start, end, chrom = item
+    #    results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
 
     ann_file.close()
     seq_file.close()
@@ -55,7 +72,7 @@ def parse(ann_file, seq_file):
     peak_counter = 0
     ann_list = []
     seq_list = []
-    ann_expr = re.compile("(chr[0-9XYM][0-9XYM]*)\t.*\t([0-9]*)\t([0-9]*)\t.*\t([+-])")
+    ann_expr = re.compile("(chr[0-9XYM][0-9XYM]*)\t.*\t([0-9]*)\t([0-9]*)\t.*\t([+-])\t.\tgene_id \"(.*)\"; transcript_id")  # don't ask...
     seq_expr = re.compile("(chr[0-9X]*)\t([0-9]*)\t([0-9]*)")
 
     # Parse annotation file
@@ -65,8 +82,9 @@ def parse(ann_file, seq_file):
         start = int(searchobj.group(2))
         end = int(searchobj.group(3))
         orientation = searchobj.group(4)
+        gene_id = searchobj.group(5)
 
-        ret_tup = (start, end, chrom, orientation)
+        ret_tup = (start, end, chrom, orientation, gene_id)
         ann_list.append(ret_tup)
 
     for line in seq_file:
@@ -90,19 +108,19 @@ def get_chroms(ann_list, seq_list):
     ann_chroms = {}
     seq_chroms = {}
     for item in ann_list:
-        ann_s, ann_e, ann_c, _ = item
+        ann_s, ann_e, ann_c, _, ann_id = item
         if ann_chroms.get(ann_c) == None:
             ann_chroms[ann_c] = []
-            ann_chroms[ann_c].append((ann_s, ann_e))
+            ann_chroms[ann_c].append((ann_s, ann_e, ann_id))
         else:
-            ann_chroms[ann_c].append((ann_s, ann_e))
+            ann_chroms[ann_c].append((ann_s, ann_e, ann_id))
     for item in seq_list:
         seq_s, seq_e, seq_c = item
         if seq_chroms.get(seq_c) == None:
             seq_chroms[seq_c] = []
-            seq_chroms[seq_c].append((seq_s, seq_e, False, seq_c))
+            seq_chroms[seq_c].append((seq_s, seq_e, [], seq_c))
         else:
-            seq_chroms[seq_c].append((seq_s, seq_e, False, seq_c))
+            seq_chroms[seq_c].append((seq_s, seq_e, [], seq_c))
 
     # Order the distinct lists by start position
     for item in ann_chroms:
@@ -111,7 +129,7 @@ def get_chroms(ann_list, seq_list):
         seq_chroms[item] = sorted(seq_chroms[item], key=lambda x:x[0])
 
     # Note: The tuples in seq_chroms contain extra information needed for
-    #       downstream processing: (start, end, within_gene_peak_bool, chr#)
+    #       downstream processing: (start, end, [gene_id], chr#)
     return ann_chroms, seq_chroms
 
 
@@ -142,14 +160,28 @@ def get_differences(ann_chroms, seq_chroms):
             if ann_index >= ann_size or seq_index >= seq_size:
                 break
 
-            ann_s, ann_e = chr_ann_list[ann_index]
+            ann_s, ann_e, ann_id = chr_ann_list[ann_index]
             seq_s, seq_e, _, seq_c = chr_seq_list[seq_index]
 
             if seq_s < ann_s:
                 seq_index = seq_index + 1
             elif seq_e <= ann_e:
                 gene_peaks.append(chr_seq_list[seq_index])
-                chr_seq_list[seq_index] = (seq_s, seq_e, True, seq_c)
+                id_list = []
+                id_list.append(ann_id)
+
+                # Check the later annotated genes for possible membership
+                tmp_idx = ann_index + 1
+                while tmp_idx < ann_size:
+                    next_ann_s, next_ann_e, next_ann_id = chr_ann_list[tmp_idx]
+                    if seq_s >= next_ann_s and seq_e <= next_ann_e:
+                        id_list.append(next_ann_id)
+                        tmp_idx = tmp_idx+1
+                    else:
+                        break
+
+                chr_seq_list[seq_index] = (seq_s, seq_e, id_list, seq_c)
+
                 seq_index = seq_index + 1
             else:
                 for diff in compute_differences(gene_peaks):
