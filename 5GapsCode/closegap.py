@@ -4,6 +4,7 @@ import re
 import numpy
 import math
 import argparse
+import Queue
 
 
 def main():
@@ -22,24 +23,7 @@ def main():
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
     diffs = get_differences(ann_chroms, seq_chroms)
 
-    zero_counter = 0
-    one_counter = 0
-    multi_counter = 0
-    for chrom in seq_chroms:
-        chr_list = seq_chroms[chrom]
-        for item in chr_list:
-            a, b, c, d = item
-            if len(c) == 0:
-                zero_counter = zero_counter + 1
-            if len(c) == 1:
-                one_counter = one_counter + 1
-            if len(c) > 1:
-                multi_counter = multi_counter + 1
-                print item
-    print "0: {}\t1: {}\t2: {}".format(zero_counter, one_counter, multi_counter)
-    print "Total: {}".format(one_counter + zero_counter + multi_counter)
-
-    ## Determine threshold gap size
+    # Determine threshold gap size
     numpyarr = numpy.array(diffs)
     numpyarr_sorted = numpy.sort(numpyarr)
     arrlen = numpy.size(numpyarr_sorted)
@@ -47,19 +31,19 @@ def main():
     threshold_gapsize = numpyarr_sorted[threshold_index]
     print "Threshold gap size is: {}".format(threshold_gapsize)
 
-    ## Merge the peaks according to the threshold gap size
-    #merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
-    #print "Finished processing {} peaks!".format(processed_counter)
+    # Merge the peaks according to the threshold gap size
+    merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
+    print "Finished processing {} peaks!".format(processed_counter)
 
-    #if processed_counter == peak_counter:
-    #    print "All peaks have been acounted for."
-    #else:
-    #    print "CAUTION: Some peaks were skipped!!"
+    if processed_counter == peak_counter:
+        print "All peaks have been acounted for."
+    else:
+        print "CAUTION: Some peaks were skipped!!"
 
-    ## Write results to file
-    #for item in merged_list:
-    #    start, end, chrom = item
-    #    results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
+    # Write results to file
+    for item in merged_list:
+        start, end, chrom = item
+        results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
 
     ann_file.close()
     seq_file.close()
@@ -221,6 +205,7 @@ def join_gaps(seq_chroms, threshold):
     # iterate through chromosomes
     keys = seq_chroms.keys()
     for key in keys:
+        print key
         peak_list = seq_chroms[key]
         chr_merged_list = [] # stores tuples (start, end, chrom)
         index = 0
@@ -229,20 +214,113 @@ def join_gaps(seq_chroms, threshold):
         working_peak = peak_list[0]
         processed_counter = processed_counter + 1
 
+        prev_stack = Queue.LifoQueue()
+        tmp_stack = Queue.LifoQueue()
+
         # process peaks in a linear fashion
         while index < num_peaks-1:
-            p1_s, p1_e, within_gene1, _ = working_peak
-            p2_s, p2_e, within_gene2, _ = peak_list[index+1]
+            p1_s, p1_e, p1_gID, _ = working_peak
+            p2_s, p2_e, p2_gID, _ = peak_list[index+1]
             processed_counter = processed_counter + 1
             gap_d = p2_s - p1_e
-            if within_gene1 == True and within_gene2 == True:
-                working_peak = join(working_peak, peak_list[index+1])
-            elif gap_d <= threshold:
-                working_peak = join(working_peak, peak_list[index+1])
+            numgeneID1 = len(p1_gID)
+            numgeneID2 = len(p2_gID)
+
+            # No ambiguous gene membership
+            if numgeneID1 == 1 and numgeneID2 == 1:
+                # same gene - merge no questions asked
+                if p1_gID[0] == p2_gID[0]:
+                    gID = p1_gID
+                    working_peak = join(working_peak, peak_list[index+1], gID)
+                else:
+                    # different genes - merge depending on threshold
+                    if gap_d <= threshold:
+                        gID = p2_gID
+                        working_peak = join(working_peak, peak_list[index+1], gID)
+                    # dump working peak and reset
+                    else:
+                        wpeak_s, wpeak_e, _, chrom = working_peak
+                        chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+                        working_peak = peak_list[index+1]
+            # Ambiguous gene membership - do merging based on threshold
             else:
-                wpeak_s, wpeak_e, _, chrom = working_peak
-                chr_merged_list.append((wpeak_s, wpeak_e, chrom))
-                working_peak = peak_list[index+1]
+                # Case: unambiguous gene, ambiguous gene
+                # put on prev_stack and reset working peak
+                if numgeneID1 == 1 and numgeneID2 > 1:
+                    prev_stack.put(working_peak)
+                    working_peak = peak_list[index+1]
+                # Case: ambiguous gene, unambiguous gene
+                # continuously pop from prev_stack looking for the same gene
+                # if same gene is found, merge everything and move on
+                elif numgeneID1 > 1 and numgeneID2 == 1:
+                    bool_merged = False
+                    while not prev_stack.empty():
+                        prev_peak = prev_stack.get()
+                        _, _, prev_peak_IDS, _ = prev_peak
+                        if prev_peak_IDS == p2_gID:
+                            bool_merged = True
+                            gID = p2_gID
+                            working_peak = join(prev_peak, working_peak, gID)
+                            working_peak = join(working_peak, peak_list[index+1], gID)
+                        else:
+                            tmp_stack.put(prev_peak)
+                    assert prev_stack.empty() is True, "items still remain on prev_stack"
+                # if same gene is not found, dump all peaks to file and check
+                # if the immediatly previous peak is within the threshold
+                    if bool_merged is False:
+                        if tmp_stack.empty():
+                            if gap_d <= threshold:
+                                gID = p2_gID
+                                working_peak = join(working_peak, peak_list[index+1], gID)
+                            # dump working peak and reset
+                            else:
+                                wpeak_s, wpeak_e, _, chrom = working_peak
+                                chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+                                working_peak = peak_list[index+1]
+                        else:
+                            # check if we can link by threshold
+                            while tmp_stack.qsize() > 1:
+                                s, e, _, chrom = tmp_stack.get()
+                                chr_merged_list.append((s, e, chrom))
+                            adjacent_peak = tmp_stack.get()
+                            assert tmp_stack.empty() is True, "items still remain on tmp_stack"
+                            if gap_d <= threshold:
+                                gID = p2_gID
+                                working_peak = join(working_peak, peak_list[index+1], gID)
+                            # dump working peak and reset
+                            else:
+                                wpeak_s, wpeak_e, _, chrom = working_peak
+                                chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+                                working_peak = peak_list[index+1]
+
+                # Case: ambiguous gene, ambiguous gene
+                # same ambiguous membership
+                elif numgeneID1 > 1 and numgeneID2 > 1:
+                    if p1_gID == p2_gID:
+                        gID = p1_gID
+                        working_peak = join(working_peak, peak_list[index+1], gID)
+                    # differing ambiguous membership
+                    else:
+                        if gap_d <= threshold:
+                            gID = p2_gID
+                            working_peak = join(working_peak, peak_list[index+1], gID)
+                        # dump working peak and reset
+                        else:
+                            wpeak_s, wpeak_e, _, chrom = working_peak
+                            chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+                            working_peak = peak_list[index+1]
+
+                # Case: anything paired with no gene
+                # Handle all with threshold
+                else:
+                    if gap_d <= threshold:
+                        gID = p2_gID
+                        working_peak = join(working_peak, peak_list[index+1], gID)
+                    # dump working peak and reset
+                    else:
+                        wpeak_s, wpeak_e, _, chrom = working_peak
+                        chr_merged_list.append((wpeak_s, wpeak_e, chrom))
+                        working_peak = peak_list[index+1]
 
             index = index + 1
 
@@ -256,19 +334,15 @@ def join_gaps(seq_chroms, threshold):
     return total_merged_list, processed_counter
 
 
-# Input: 2 peak tuples (start, end, within_gene_peak_bool, chrom)
-# Output: 1 working peak tuple (start, end, within_gene_peak_bool, chrom)
+# Input: 2 peak tuples (start, end, [geneIDs], chrom)
+# Output: 1 working peak tuple (start, end, [geneIDs], chrom)
 # Note: Assumes we are linking end of peak1 to start of peak2. Assumes peaks are
 #       from the same chromosome
-def join(peak1, peak2):
-    p1_s, _, within_gene_bool, chrom = peak1
+def join(peak1, peak2, gID):
+    p1_s, _, _, chrom = peak1
     _, p2_e, _, _ = peak2
 
-    ret_bool = False
-    if within_gene_bool == True:
-        ret_bool = True
-
-    return (p1_s, p2_e, ret_bool, chrom)
+    return (p1_s, p2_e, gID, chrom)
 
 
 if __name__ == "__main__":
