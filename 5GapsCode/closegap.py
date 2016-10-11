@@ -16,10 +16,10 @@ def main():
 
     ann_file = open(args.annotation, 'r')
     seq_file = open(args.bed, 'r')
-    results_file = open("merged.bed", 'w')
+    #results_file = open("merged.bed", 'w')
 
     ann_list, seq_list, peak_counter = parse(ann_file, seq_file)
-    print "Total number of peaks in .bed file: {}".format(peak_counter)
+    #print "Total number of peaks in .bed file: {}".format(peak_counter)
     ann_chroms, seq_chroms = get_chroms(ann_list, seq_list)
     diffs = get_differences(ann_chroms, seq_chroms)
 
@@ -29,25 +29,26 @@ def main():
     arrlen = numpy.size(numpyarr_sorted)
     threshold_index = int(math.floor(0.1 * arrlen))  # 10% threshold
     threshold_gapsize = numpyarr_sorted[threshold_index]
-    print "Threshold gap size is: {}".format(threshold_gapsize)
+    #print "Threshold gap size is: {}".format(threshold_gapsize)
 
     # Merge the peaks according to the threshold gap size
     merged_list, processed_counter = join_gaps(seq_chroms, threshold_gapsize)
-    print "Finished processing {} peaks!".format(processed_counter)
+    #print "Finished processing {} peaks!".format(processed_counter)
 
-    if processed_counter == peak_counter:
-        print "All peaks have been acounted for."
-    else:
-        print "CAUTION: Some peaks were skipped!!"
+    #if processed_counter == peak_counter:
+    #    print "All peaks have been acounted for."
+    #else:
+    #    print "CAUTION: Some peaks were skipped!!"
 
     # Write results to file
     for item in merged_list:
         start, end, chrom = item
-        results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
+        print "{}\t{}\t{}".format(chrom, start, end)
+        #results_file.write("{}\t{}\t{}\n".format(chrom, start, end))
 
     ann_file.close()
     seq_file.close()
-    results_file.close()
+    #results_file.close()
 
 
 # Input: Annotation file (ann_file), Sequence/.bed file (seq_file)
@@ -205,7 +206,7 @@ def join_gaps(seq_chroms, threshold):
     # iterate through chromosomes
     keys = seq_chroms.keys()
     for key in keys:
-        print key
+        #print key
         peak_list = seq_chroms[key]
         chr_merged_list = [] # stores tuples (start, end, chrom)
         index = 0
