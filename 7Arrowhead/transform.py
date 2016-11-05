@@ -12,6 +12,8 @@ def main():
     transmat = numpy.zeros((nrow, ncol))
     tnrow, tncol = datamatr.shape
 
+    # TODO: implement some threshold d beyond which we don't care about it
+
     # iterate through all elements in the matrix and transform
     it = numpy.nditer(datamatr, flags=['multi_index'])
     while not it.finished:
