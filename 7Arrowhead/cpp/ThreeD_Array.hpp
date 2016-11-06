@@ -1,5 +1,5 @@
-#ifndef __TWOD_ARRAY_HPP__
-#define __TWOD_ARRAY_HPP__
+#ifndef __THREED_ARRAY_HPP__
+#define __THREED_ARRAY_HPP__
 
 #include <cassert>
 
@@ -37,6 +37,17 @@ public:
     // returns the depth
     int getDepth() {
         return o;
+    }
+
+    void printOut(int depth) {
+        assert(depth < o);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                std::cout << at(depth, i,j) << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
     }
 
 private:

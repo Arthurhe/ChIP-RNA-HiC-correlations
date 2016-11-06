@@ -1,70 +1,92 @@
-// CSE 101 Winter 2016, PA 3
-//
-// Name: TODO put both partners' info if applicable
-// PID: TODO
-// Sources of Help: TODO
-// Due: February 19th, 2016 at 11:59 PM
+#ifndef __DPRCS_CPP__
+#define __DPRCS_CPP__
 
-#ifndef __GRID_SUM_CPP__
-#define __GRID_SUM_CPP__
+#include <cstdlib>
+#include <climits>
+#include <cassert>
 
+#include "TwoD_Array.hpp"
 #include "ThreeD_Array.hpp"
 #include "RCS.hpp"
 
 // Perform the precomputation step here
-RCS::RCS (ThreeD_Array<int>& grid) {
-    // TODO
+RCS::RCS (TwoD_Array<int>& grid, char rc) {
     // Create the pre-computed grid
-    // TODO: Fix the memory leak?
-    pg = new ThreeD_Array<int>(1, grid.getNumRows(), grid.getNumCols());
+    if(rc == 'r') {
+        pg = new ThreeD_Array<int>(grid.getNumRows(), grid.getNumRows(), grid.getNumCols());
+    }
+    else if (rc == 'c') {
+        pg = new ThreeD_Array<int>(grid.getNumCols(), grid.getNumRows(), grid.getNumCols());
+    }
+    else {
+        std::cerr << "Must select either rows or columns" << std::endl;
+        exit(1);
+    }
 
-    // TODO: remove when done
-    // Initialize all values to 0 for debuging purposes
-    for(int i = 0; i < pg->getNumCols(); ++i) {
-        for(int j = 0; j < pg->getNumRows(); ++j) {
-            pg->at(0, j, i) = 0;
+    // Initialize all values to 0
+    for(int d = 0; d < pg->getDepth(); ++d) {
+        for(int i = 0; i < pg->getNumCols(); ++i) {
+            for(int j = 0; j < pg->getNumRows(); ++j) {
+                pg->at(d, j, i) = 0;
+            }
         }
     }
 
-    pg->at(0, 0, 0) = grid.at(0, 0, 0);
-
-    // Compute the first row of elements in pre-computed grid pg O(N)
-    for(int i = 1; i < grid.getNumCols(); ++i) {
-        pg->at(0, 0, i) = pg->at(0, 0, i-1) + grid.at(0, 0, i);
+    // Compute the sums using DP
+    if(rc == 'r') {
+        for(int d = 0; d < grid.getNumRows(); ++d) {
+            RCS::calculate(d, 'r', grid);
+        }
     }
-
-    // Compute the first column of elements in the pre-computed grid pg O(N)
-    for(int i = 1; i < grid.getNumRows(); ++i) {
-        pg->at(0, i, 0) = pg->at(0, i-1, 0) + grid.at(0, i, 0);
+    else {
+        for(int d = 0; d < grid.getNumCols(); ++d) {
+            RCS::calculate(d, 'c', grid);
+        }
     }
+}
 
-    // Compute the rest of the grid O(N^2)
-    for(int r = 1; r < pg->getNumRows(); ++r) {
-        for(int c = 1; c < pg->getNumCols(); ++c) {
-            pg->at(0, r, c) = pg->at(0, r-1, c) + pg->at(0, r, c-1) + grid.at(0, r, c) - pg->at(0, r-1, c-1);
+// Function to compute the DP recurrence per row/column of the given grid
+void RCS::calculate (int d, char rc, TwoD_Array<int>& grid) {
+    for(int r = 0; r < pg->getNumRows(); ++r) {
+        for(int c = 0; c < pg->getNumCols(); ++c) {
+
+            // Base Case
+            if(r == 0 && rc == 'r') {
+                pg->at(d, r, c) = grid.at(d, c);
+            }
+            else if (r == 0 && rc == 'c') {
+                pg->at(d, r, c) = grid.at(c, d);
+            }
+
+            // Recurrence
+            else if (r > 0 && c > 0 && c >= r && rc == 'r') {
+                pg->at(d, r, c) = pg->at(d, r-1, c-1) + grid.at(d, c);
+            }
+            else if (r > 0 && c > 0 && c >= r && rc == 'c') {
+                pg->at(d, r, c) = pg->at(d, r-1, c-1) + grid.at(c, d);
+            }
+
+            // else set to maxint?
+            else {
+                pg->at(d, r, c) = INT_MAX;
+            }
         }
     }
 }
 
 // Perform the query step here
-int RCS::query (int d, int x1, int y1, int x2, int y2) {
-    // TODO
+// Note: Gets the sum [from, to] (inclusive)
+int RCS::query (int rcNum, int from, int to) {
+    // Do conversion calculation to query the pg
+    assert(to >= from);
+    int range = to - from;
 
-    // Case where one corner is (0, 0)
-    if(x1 == 0 && y1 == 0) {
-        return pg->at(0, x2, y2);
-    }
-    else if(x1 == 0) {
-        return pg->at(0, x2, y2) - pg->at(0, x2, y1-1);
-    }
-    else if(y1 == 0) {
-        return pg->at(0, x2, y2) - pg->at(0, x1-1, y2);
-    }
-    else if(x2 < pg->getNumRows() && y2 < pg->getNumCols()) {
-        return pg->at(0, x2, y2) - pg->at(0, x1-1, y2) - pg->at(0, x2, y1-1) + pg->at(0, x1-1, y1-1);
-    }
-    // TODO: Check for out of bounds in the greater direction?
-    return -1;
+    return pg->at(rcNum, range, to);
+}
+
+// Function to print the computed matrix at a particular depth
+void RCS::printOut(int d){
+    pg->printOut(d);
 }
 
 #endif

@@ -1,21 +1,22 @@
-// CSE 101 Winter 2016, PA 3
-//
-// You may modify what you store in the GridSum class if needed
-
-#ifndef __GRID_SUM_HPP__
-#define __GRID_SUM_HPP__
+#ifndef __DPRCS_HPP__
+#define __DPRCS_HPP__
 
 #include "ThreeD_Array.hpp"
+#include "TwoD_Array.hpp"
 
 class RCS {
 public:
-    // The constructor is first called as the precompute step
-    RCS(ThreeD_Array<int>& grid);
+    // The constructor does the pre-computation
+    RCS(TwoD_Array<int>& grid, char rc);
 
-    int query(int d, int x1, int y1, int x2, int y2);
+    int query(int rcNum, int from, int to);
+
+    void printOut(int d);
 
 private:
-    // You may modify these variables as needed (pg for precomputed grid)
+    void calculate(int d, char rc, TwoD_Array<int>& grid);
+
+    // pg is the precomputed grid
     ThreeD_Array<int> * pg;
 };
 
