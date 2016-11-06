@@ -12,7 +12,7 @@
 #include <vector>
 #include <tuple>
 
-#include "TwoD_Array.hpp"
+#include "ThreeD_Array.hpp"
 #include "RCS.hpp"
 
 int main(int argc, char * argv[]) {
@@ -35,14 +35,14 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-    TwoD_Array<int> grid(size, size);
+    ThreeD_Array<int> grid(1, size, size);
 
     for (int i = 0; i < size; i++) {
         std::string row;
         if (getline(input, row)) {
             std::stringstream stream(row);
             for (int j = 0; j < size; j++) {
-                stream >> grid.at(i, j);
+                stream >> grid.at(0, i, j);
             }
         }
         else {
@@ -69,7 +69,7 @@ int main(int argc, char * argv[]) {
             exit(1);
         }
         results.push_back(
-                std::make_tuple(x1, y1, x2, y2, rcs.query(x1, y1, x2, y2)));
+                std::make_tuple(x1, y1, x2, y2, rcs.query(0, x1, y1, x2, y2)));
     }
 
     for (auto it = results.begin(); it != results.end(); ++it) {
