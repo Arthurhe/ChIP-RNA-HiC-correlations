@@ -14,6 +14,11 @@ public:
         linear_array = new T[n * m];
     }
 
+    ~TwoD_Array() {
+        delete [] linear_array;
+        linear_array = 0;
+    }
+
     // you can use 'at' to both set and retrieve values in the 2D_Array
     T& at (int x, int y) {
         return linear_array[(x*m) + y];

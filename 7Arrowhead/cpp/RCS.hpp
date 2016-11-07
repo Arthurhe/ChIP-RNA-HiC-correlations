@@ -7,17 +7,23 @@
 class RCS {
 public:
     // The constructor does the pre-computation
-    RCS(TwoD_Array<int>& grid, char rc);
+    RCS(TwoD_Array<float>& grid, char rc, char func);
+    ~RCS();
 
     int query(int rcNum, int from, int to);
 
     void printOut(int d);
 
 private:
-    void calculate(int d, char rc, TwoD_Array<int>& grid);
+    // The DP algorithm implementation
+    void calculate(int d, char rc, TwoD_Array<float>& grid, float (*f)(float, float));
+
+    // Scoring functions
+    static float sum(float a, float b);
+    static float sign(float a, float b);
 
     // pg is the precomputed grid
-    ThreeD_Array<int> * pg;
+    ThreeD_Array<float> * pg;
 };
 
 #endif

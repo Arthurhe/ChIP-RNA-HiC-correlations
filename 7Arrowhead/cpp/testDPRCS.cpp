@@ -31,7 +31,7 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-    TwoD_Array<int> grid(size, size);
+    TwoD_Array<float> grid(size, size);
 
     for (int i = 0; i < size; i++) {
         std::string row;
@@ -49,7 +49,7 @@ int main(int argc, char * argv[]) {
 
     grid.printOut();
 
-    RCS rcs1(grid, 'r');
+    RCS rcs1(grid, 'r', 's');
     rcs1.printOut(0);
     rcs1.printOut(1);
 
