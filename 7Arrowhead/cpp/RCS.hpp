@@ -10,7 +10,7 @@ public:
     RCS(TwoD_Array<float>& grid, char rc, char func);
     ~RCS();
 
-    int query(int rcNum, int from, int to);
+    float query(int rcNum, int from, int to);
 
     void printOut(int d);
 

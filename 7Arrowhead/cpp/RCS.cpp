@@ -108,7 +108,7 @@ float RCS::sign(float a, float b) {
 
 // Perform the query step here
 // Note: Gets the sum [from, to] (inclusive)
-int RCS::query (int rcNum, int from, int to) {
+float RCS::query (int rcNum, int from, int to) {
     // Do conversion calculation to query the pg
     assert(to >= from);
     int range = to - from;
