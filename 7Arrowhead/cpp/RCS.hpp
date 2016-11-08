@@ -1,5 +1,5 @@
-#ifndef __DPRCS_HPP__
-#define __DPRCS_HPP__
+#ifndef __RCS_HPP__
+#define __RCS_HPP__
 
 #include "ThreeD_Array.hpp"
 #include "TwoD_Array.hpp"

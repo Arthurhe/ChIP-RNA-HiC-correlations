@@ -1,5 +1,5 @@
-#ifndef __DPRCS_CPP__
-#define __DPRCS_CPP__
+#ifndef __RCS_CPP__
+#define __RCS_CPP__
 
 #include <cstdlib>
 #include <cfloat>
