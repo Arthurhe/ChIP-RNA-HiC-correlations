@@ -94,15 +94,13 @@ void LVTriangle::divide() {
 
 LVTriangle::~LVTriangle() {
     delete pg;
+    delete counts;
     pg = 0;
+    counts = 0;
 }
 
 void LVTriangle::display() {
-    std::cout << "PG: " << std::endl;
     (*pg).printOut();
-
-    std::cout << "counts: " << std::endl;
-    (*counts).printOut();
 }
 
 #endif

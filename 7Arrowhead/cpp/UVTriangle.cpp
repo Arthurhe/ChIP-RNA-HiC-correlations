@@ -85,15 +85,13 @@ void UVTriangle::divide() {
 
 UVTriangle::~UVTriangle() {
     delete pg;
+    delete counts;
     pg = 0;
+    counts = 0;
 }
 
 void UVTriangle::display() {
-    std::cout << "PG: " << std::endl;
     (*pg).printOut();
-
-    std::cout << "counts: " << std::endl;
-    (*counts).printOut();
 }
 
 #endif
