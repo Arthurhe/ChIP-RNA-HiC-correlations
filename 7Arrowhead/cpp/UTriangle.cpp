@@ -26,7 +26,7 @@ UTriangle::UTriangle(int size, RCS& sfxnmatr) {
             // compute dimensions of triangle
             // note: top < bottom
             int top = r;
-            int bottom = floor(((float) r + (float) c)/2);
+            int bottom = floor(((float)(r + c))/2);
 
             // recurrence
             if(r < c) {

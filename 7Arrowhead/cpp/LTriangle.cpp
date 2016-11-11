@@ -29,7 +29,7 @@ LTriangle::LTriangle(int size, RCS& rScores, RCS& cScores) {
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
             // compute dimensions of triangle
-            int top = ceil(((float) r + (float) c)/2);
+            int top = ceil(((float)(r + c))/2);
             int bottom = c;
             int right = 2*c - r;
 
