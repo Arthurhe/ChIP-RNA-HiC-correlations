@@ -39,5 +39,9 @@ def main():
     # save space.
     numpy.savetxt("transformed.txt", transmat, fmt='%.13f', delimiter="\t")
 
+    print(transmat * transmat)
+    squared = transmat * transmat
+    numpy.savetxt("squared.txt", squared, fmt='%.13f', delimiter="\t")
+
 if __name__ == "__main__":
     main()
