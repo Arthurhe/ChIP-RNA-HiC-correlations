@@ -12,7 +12,7 @@
 RCS::RCS (TwoD_Array<float>& grid, char rc, char func) {
     // Applied function sanity check
     // s = sum, i = sign, v = variance
-    assert(func == 's' || func == 'i' || func == 'v');
+    assert(func == 's' || func == 'i');
 
     // Create the pre-computed grid
     if(rc == 'r') {
@@ -41,10 +41,8 @@ RCS::RCS (TwoD_Array<float>& grid, char rc, char func) {
         fxn = &RCS::sum;
     }
     else if(func == 'i') {
+        fxn = &RCS::sign;
     }
-    else if(func == 'v') {
-    }
-
 
     // Compute the sums using DP
     if(rc == 'r') {
