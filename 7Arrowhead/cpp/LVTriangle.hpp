@@ -1,5 +1,5 @@
-#ifndef __UVTRIANGLE_HPP__
-#define __UVTRIANGLE_HPP__
+#ifndef __LVTRIANGLE_HPP__
+#define __LVTRIANGLE_HPP__
 
 #include "TwoD_Array.hpp"
 #include "RCS.hpp"
