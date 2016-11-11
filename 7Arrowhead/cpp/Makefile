@@ -23,6 +23,18 @@ testLTriangle.o: testLTriangle.cpp $(HEADERS)
 testLTriangle: RCS.o LTriangle.o testLTriangle.o
 	$(CC) $(FLAGS) -g -o testLTriangle.out testLTriangle.o RCS.o LTriangle.o
 
+testUVTriangle.o: testUVTriangle.cpp $(HEADERS)
+	$(CC) $(FLAGS) -g -c testUVTriangle.cpp
+
+testUVTriangle: RCS.o UVTriangle.o testUVTriangle.o
+	$(CC) $(FLAGS) -g -o testUVTriangle.out testUVTriangle.o RCS.o UVTriangle.o
+
+testLVTriangle.o: testLVTriangle.cpp $(HEADERS)
+	$(CC) $(FLAGS) -g -c testLVTriangle.cpp
+
+testLVTriangle: RCS.o LVTriangle.o testLVTriangle.o
+	$(CC) $(FLAGS) -g -o testLVTriangle.out testLVTriangle.o RCS.o LVTriangle.o
+
 %.o: %.cpp
 	$(CC) $(FLAGS) -g -c -o $@ $<
 
