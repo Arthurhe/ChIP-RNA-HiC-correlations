@@ -1,6 +1,7 @@
 #ifndef __RCS_CPP__
 #define __RCS_CPP__
 
+#include <cmath>
 #include <cstdlib>
 #include <cfloat>
 #include <cassert>
@@ -47,12 +48,12 @@ RCS::RCS (TwoD_Array<float>& grid, char rc, char func) {
     // Compute the sums using DP
     if(rc == 'r') {
         for(int d = 0; d < grid.getNumRows(); ++d) {
-            RCS::calculate(d, 'r', grid, fxn);
+            RCS::calculate(d, 'r', func, grid, fxn);
         }
     }
     else {
         for(int d = 0; d < grid.getNumCols(); ++d) {
-            RCS::calculate(d, 'c', grid, fxn);
+            RCS::calculate(d, 'c', func, grid, fxn);
         }
     }
 }
@@ -63,16 +64,26 @@ RCS::~RCS() {
 }
 
 // Function to compute the DP recurrence per row/column of the given grid
-void RCS::calculate (int d, char rc, TwoD_Array<float>& grid, float(*f)(float, float)) {
+void RCS::calculate (int d, char rc, char func, TwoD_Array<float>& grid, float(*f)(float, float)) {
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
 
             // Base Case
             if(r == 0 && rc == 'r') {
-                pg->at(d, r, c) = grid.at(d, c);
+                if(func == 's') {
+                    pg->at(d, r, c) = grid.at(d, c);
+                }
+                else if(func == 'i') {
+                    pg->at(d, r, c) = (grid.at(d, c) >= 0) ? 1 : -1;
+                }
             }
             else if (r == 0 && rc == 'c') {
-                pg->at(d, r, c) = grid.at(c, d);
+                if(func == 's') {
+                    pg->at(d, r, c) = grid.at(c, d);
+                }
+                else if (func == 'i') {
+                    pg->at(d, r, c) = (grid.at(c, d) >= 0) ? 1 : -1;
+                }
             }
 
             // Recurrence
@@ -85,7 +96,7 @@ void RCS::calculate (int d, char rc, TwoD_Array<float>& grid, float(*f)(float, f
 
             // else set to maxint?
             else {
-                pg->at(d, r, c) = FLT_MAX;
+                pg->at(d, r, c) = nanf("");
             }
         }
     }
@@ -96,10 +107,8 @@ float RCS::sum(float a, float b) {
 }
 
 float RCS::sign(float a, float b) {
-    float asign;
-    float bsign;
-    (a >= 0) ? asign = 1 : asign = -1;
-    (b >= 0) ? bsign = 1 : bsign = -1;
+    float asign = (a >= 0) ? 1 : -1;
+    float bsign = (b >= 0) ? 1 : -1;
 
     return asign + bsign;
 }

@@ -16,7 +16,7 @@ public:
 
 private:
     // The DP algorithm implementation
-    void calculate(int d, char rc, TwoD_Array<float>& grid, float (*f)(float, float));
+    void calculate(int d, char rc, char func, TwoD_Array<float>& grid, float (*f)(float, float));
 
     // Scoring functions
     static float sum(float a, float b);
