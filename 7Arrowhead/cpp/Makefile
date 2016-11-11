@@ -17,6 +17,12 @@ testUTriangle.o: testUTriangle.cpp $(HEADERS)
 testUTriangle: RCS.o UTriangle.o testUTriangle.o
 	$(CC) $(FLAGS) -g -o testUTriangle.out testUTriangle.o RCS.o UTriangle.o
 
+testLTriangle.o: testLTriangle.cpp $(HEADERS)
+	$(CC) $(FLAGS) -g -c testLTriangle.cpp
+
+testLTriangle: RCS.o LTriangle.o testLTriangle.o
+	$(CC) $(FLAGS) -g -o testLTriangle.out testLTriangle.o RCS.o LTriangle.o
+
 %.o: %.cpp
 	$(CC) $(FLAGS) -g -c -o $@ $<
 

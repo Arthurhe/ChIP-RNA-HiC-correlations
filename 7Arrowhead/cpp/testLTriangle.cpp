@@ -1,5 +1,5 @@
-#ifndef __TESTUTRIANGLE_CPP__
-#define __TESTUTRIANGLE_CPP__
+#ifndef __TESTLTRIANGLE_CPP__
+#define __TESTLTRIANGLE_CPP__
 
 #include <cstdlib>
 #include <iostream>
@@ -10,7 +10,7 @@
 #include "TwoD_Array.hpp"
 #include "ThreeD_Array.hpp"
 #include "RCS.hpp"
-#include "UTriangle.hpp"
+#include "LTriangle.hpp"
 
 int main(int argc, char * argv[]) {
     if (argc != 2) {
@@ -50,9 +50,10 @@ int main(int argc, char * argv[]) {
 
     grid.printOut();
 
-    RCS rcs1(grid, 'c', 's');
-    UTriangle sumU(size, rcs1);
-    sumU.display();
+    RCS cScores(grid, 'c', 's');
+    RCS rScores(grid, 'r', 's');
+    LTriangle sumL(size, rScores, cScores);
+    sumL.display();
     
     return 0;
 }
