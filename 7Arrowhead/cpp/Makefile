@@ -5,6 +5,12 @@ HEADERS=$(wildcard *.hpp)
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 
+score.o: score.cpp $(HEADERS)
+	$(CC) $(FLAGS) -g -c score.cpp
+
+score: score.o RCS.o UTriangle.o LTriangle.o UVTriangle.o LVTriangle.o
+	$(CC) $(FLAGS) -g -o score.out score.o RCS.o UTriangle.o LTriangle.o UVTriangle.o LVTriangle.o
+
 testDPRCS.o: testDPRCS.cpp $(HEADERS)
 	$(CC) $(FLAGS) -g -c testDPRCS.cpp
 
