@@ -17,11 +17,14 @@ public:
 
     void square();
 
+    void normalize();
+
     // Do the variance subtraction in place
     void subtract(CumVar& squared);
 
 private:
     void divide();
+    float maxVal;
 
     // precomputed grid
     TwoD_Array<float>* pg;

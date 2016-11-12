@@ -186,7 +186,7 @@ int main(int argc, char * argv[]) {
     LTriangle* Ssum = &Lsums;
     Ssum->normalize();
 
-    Ssum->display();
+    //Ssum->display();
 
     /**
      * ====================================================================
@@ -199,7 +199,7 @@ int main(int argc, char * argv[]) {
     LTriangle* Ssign = &Lsigns;
     Ssign->normalize();
 
-    Ssign->display();
+    //Ssign->display();
 
     /**
      * ====================================================================
@@ -220,8 +220,9 @@ int main(int argc, char * argv[]) {
 
     cvtmp.square();
     Svar.subtract(cvtmp);
+    Svar.normalize();
 
-    Svar.display();
+    //Svar.display();
 
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;

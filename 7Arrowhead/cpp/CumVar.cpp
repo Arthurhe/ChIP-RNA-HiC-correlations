@@ -53,6 +53,34 @@ void CumVar::subtract(CumVar& squared) {
     }
 }
 
+// Scan through variances and get maximum value. Then divide every number by it
+void CumVar::normalize() {
+    // Find max value
+    for(int r = 0; r < this->pg->getNumRows(); ++ r) {
+        for(int c = 0; c < this->pg->getNumCols(); ++ c) {
+            float val = this->pg->at(r, c);
+            if(r == 0 && c == 0) {
+                maxVal = val;
+            }
+            else if(val > maxVal) {
+                maxVal = val;
+            }
+        }
+    }
+
+    // don't divide by zero
+    if(maxVal == 0) {
+        maxVal = 1;
+    }
+
+    // divide every value by maxVal
+    for(int r = 0; r < this->pg->getNumRows(); ++ r) {
+        for(int c = 0; c < this->pg->getNumCols(); ++ c) {
+            this->pg->at(r, c) = this->pg->at(r, c) / maxVal;
+        }
+    }
+}
+
 
 CumVar::~CumVar() {
     delete pg;
