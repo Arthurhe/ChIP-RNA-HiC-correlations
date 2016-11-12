@@ -19,6 +19,10 @@ public:
 
     void normalize();
 
+    int getSize();
+
+    float getValue(int r, int c);
+
     // Do the variance subtraction in place
     void subtract(CumVar& squared);
 

@@ -20,6 +20,8 @@ public:
 
     void display();
 
+    float getValue(int r, int c);
+
 private:
     // precomputed grid
     TwoD_Array<float>* pg;

@@ -81,6 +81,13 @@ void CumVar::normalize() {
     }
 }
 
+int CumVar::getSize() {
+    return pg->getNumCols();
+}
+
+float CumVar::getValue(int r, int c) {
+    return pg->at(r, c);
+}
 
 CumVar::~CumVar() {
     delete pg;

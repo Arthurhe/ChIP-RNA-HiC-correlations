@@ -15,6 +15,7 @@
 #include "UTriangle.hpp"
 #include "LTriangle.hpp"
 #include "CumVar.hpp"
+#include "Aggregate.hpp"
 
 // first input is the normal matrix, second input is the squared matrix
 
@@ -223,6 +224,19 @@ int main(int argc, char * argv[]) {
     Svar.normalize();
 
     //Svar.display();
+
+    /**
+     * ====================================================================
+     * Aggregate Scores to make S'
+     * ====================================================================
+     */
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tAggregating scores to make S'" << std::endl;
+    Aggregate Stot = Aggregate(*Ssum, *Ssign, Svar);
+    //Stot.display();
+    std::ofstream outfile;
+    outfile.open("CumScoreMatr.txt");
+    Stot.write(outfile);
 
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;

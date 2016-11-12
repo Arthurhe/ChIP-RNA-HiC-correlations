@@ -91,6 +91,10 @@ void LTriangle::normalize() {
     }
 }
 
+float LTriangle::getValue(int r, int c) {
+    return pg->at(r, c);
+}
+
 void LTriangle::display() {
     (*pg).printOut();
 }
