@@ -40,9 +40,10 @@ void UVTriangle::compute(RCS& sfxnmatr) {
             // note: top < bottom
             int top = r;
             int bottom = floor(((float)(r + c))/2);
+            int right = 2*c - r;
 
             // recurrence
-            if(r < c) {
+            if(r < c && right < pg->getNumCols()) {
                 pg->at(r, c) = pg->at(r, c-1) + sfxnmatr.query(c, top, bottom);
                 counts->at(r, c) = counts->at(r, c-1) + bottom - top + 1;
             }

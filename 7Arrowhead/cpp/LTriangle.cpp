@@ -7,6 +7,7 @@
 
 #include "LTriangle.hpp"
 #include "RCS.hpp"
+#include "UTriangle.hpp"
 
 LTriangle::LTriangle(int size, RCS& rScores, RCS& cScores) {
     // sanity checks?
@@ -55,6 +56,39 @@ LTriangle::LTriangle(int size, RCS& rScores, RCS& cScores) {
 LTriangle::~LTriangle() {
     delete pg;
     pg = 0;
+}
+
+void LTriangle::subtract(UTriangle& upper) {
+    // TODO: check that upper and lower are the same dimensions
+    for(int r = 0; r < this->pg->getNumRows(); ++r) {
+        for(int c = 0; c < this->pg->getNumCols(); ++c) {
+            if(!std::isnan(pg->at(r, c))) {
+                pg->at(r, c) = pg->at(r, c) - upper.getValue(r, c);
+                if(r == 0 && c == 0) {
+                    maxVal = pg->at(r, c);
+                }
+                else if (pg->at(r, c) > maxVal) {
+                    maxVal = pg->at(r, c);
+                }
+            }
+            else {
+                pg->at(r, c) = nanf("");
+            }
+        }
+    }
+}
+
+void LTriangle::normalize() {
+    // Prevent divide by 0's only if 0 was the max value
+    if(maxVal == 0) {
+        maxVal = 1;
+    }
+
+    for(int r = 0; r < this->pg->getNumRows(); ++r) {
+        for(int c = 0; c < this->pg->getNumCols(); ++c) {
+            pg->at(r, c) = pg->at(r, c) / maxVal;
+        }
+    }
 }
 
 void LTriangle::display() {

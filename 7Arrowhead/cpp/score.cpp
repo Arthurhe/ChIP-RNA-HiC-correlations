@@ -6,6 +6,7 @@
 #include <fstream>
 #include <fstream>
 #include <sstream>
+#include <ctime>
 
 #include "TwoD_Array.hpp"
 #include "RCS.hpp"
@@ -17,6 +18,9 @@
 // first input is the normal matrix, second input is the squared matrix
 
 int main(int argc, char * argv[]) {
+    // Get start time
+    std::time_t start = std::time(0);
+
     if (argc != 3) {
         std::cerr << "Invalid number of arguments; expecting 2 for file name" << std::endl;
         exit(1);
@@ -27,7 +31,8 @@ int main(int argc, char * argv[]) {
      * Read in the normal matrix file
      * ====================================================================
      */
-    std::cout << "Reading in the normal matrix file" << std::endl;
+    std::time_t now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tReading in the normal matrix file" << std::endl;
     std::ifstream norm_in (argv[1], std::ios::in);
 
     // grab the grid size
@@ -63,7 +68,8 @@ int main(int argc, char * argv[]) {
      * Read in the squared matrix file
      * ====================================================================
      */
-    std::cout << "Reading in the squared matrix file" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tReading in the squared matrix file" << std::endl;
     std::ifstream squared_in (argv[2], std::ios::in);
 
     // grab the grid size
@@ -99,7 +105,8 @@ int main(int argc, char * argv[]) {
      * Compute U_sum
      * ====================================================================
      */
-    std::cout << "Computing Usums" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing Usums" << std::endl;
     RCS normColSums(norm_matr, 'c', 's');
     UTriangle Usums(size1, normColSums);
     Usums.display();
@@ -109,7 +116,8 @@ int main(int argc, char * argv[]) {
      * Compute L_sum
      * ====================================================================
      */
-    std::cout << "Computing Lsums" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing Lsums" << std::endl;
     RCS normRowSums(norm_matr, 'r', 's');
     LTriangle Lsums(size1, normRowSums, normColSums);
     Lsums.display();
@@ -119,7 +127,8 @@ int main(int argc, char * argv[]) {
      * Compute U_sign
      * ====================================================================
      */
-    std::cout << "Computing Usigns" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing Usigns" << std::endl;
     RCS normColSigns(norm_matr, 'c', 'i');
     UTriangle Usigns(size1, normColSigns);
     Usigns.display();
@@ -129,7 +138,8 @@ int main(int argc, char * argv[]) {
      * Compute L_sign
      * ====================================================================
      */
-    std::cout << "Computing Lsigns" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing Lsigns" << std::endl;
     RCS normRowSigns(norm_matr, 'r', 'i');
     LTriangle Lsigns(size1, normRowSigns, normColSigns);
     Lsigns.display();
@@ -139,7 +149,8 @@ int main(int argc, char * argv[]) {
      * Compute U_var
      * ====================================================================
      */
-    std::cout << "Computing Uvars" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing Uvars" << std::endl;
     RCS squaredColSums(squared_matr, 'c', 's');
     UVTriangle utmp = UVTriangle(size1, normColSums);
     UVTriangle Uvar = UVTriangle(size2, squaredColSums);
@@ -153,7 +164,8 @@ int main(int argc, char * argv[]) {
      * Compute L_var
      * ====================================================================
      */
-    std::cout << "Computing Lvars" << std::endl;
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing Lvars" << std::endl;
     RCS squaredRowSums(squared_matr, 'c', 's');
     LVTriangle ltmp = LVTriangle(size1, normRowSums, normColSums);
     LVTriangle Lvar = LVTriangle(size2, squaredRowSums, squaredColSums);
@@ -162,7 +174,34 @@ int main(int argc, char * argv[]) {
 
     Lvar.display();
 
-    std::cout << "Done!" << std::endl;
+    /**
+     * ====================================================================
+     * Compute S_sum = L_sum - U_sum
+     * ====================================================================
+     */
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing S_sum = L_sum - U_sum" << std::endl;
+    Lsums.subtract(Usums);
+    LTriangle* Ssum = &Lsums;
+    Ssum->normalize();
+
+    Ssum->display();
+
+    /**
+     * ====================================================================
+     * Compute S_sign
+     * ====================================================================
+     */
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tComputing S_sign = L_sign - U_sign" << std::endl;
+    Lsigns.subtract(Usigns);
+    LTriangle* Ssign = &Lsigns;
+    Ssign->normalize();
+
+    Ssign->display();
+
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;
     
     return 0;
 }

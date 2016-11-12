@@ -11,6 +11,8 @@ public:
     UTriangle(int size, RCS& sfxnmatr);
     ~UTriangle();
 
+    float getValue(int r, int c);
+
     void display();
 
 private:

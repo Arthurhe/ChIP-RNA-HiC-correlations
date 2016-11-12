@@ -3,6 +3,7 @@
 
 #include "TwoD_Array.hpp"
 #include "RCS.hpp"
+#include "UTriangle.hpp"
 
 class LTriangle{
 public:
@@ -11,11 +12,19 @@ public:
     LTriangle(int size, RCS& rScores, RCS& cScores);
     ~LTriangle();
 
+    // Used to do L - U in place
+    void subtract(UTriangle& upper);
+
+    // Divide by largest value
+    void normalize();
+
     void display();
 
 private:
     // precomputed grid
     TwoD_Array<float>* pg;
+
+    float maxVal;
 };
 
 #endif

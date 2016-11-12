@@ -27,9 +27,12 @@ UTriangle::UTriangle(int size, RCS& sfxnmatr) {
             // note: top < bottom
             int top = r;
             int bottom = floor(((float)(r + c))/2);
+            int right = 2*c - r;
 
             // recurrence
-            if(r < c) {
+            // the right check is to not do calculations that cannot be done in
+            // the lower triangle
+            if(r < c && right < pg->getNumCols()) {
                 pg->at(r, c) = pg->at(r, c-1) + sfxnmatr.query(c, top, bottom);
             }
             else if (r == c) {
@@ -45,6 +48,10 @@ UTriangle::UTriangle(int size, RCS& sfxnmatr) {
 UTriangle::~UTriangle() {
     delete pg;
     pg = 0;
+}
+
+float UTriangle::getValue(int r, int c) {
+    return this->pg->at(r, c);
 }
 
 void UTriangle::display() {

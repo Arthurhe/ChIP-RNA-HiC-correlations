@@ -1,5 +1,6 @@
 CC=g++
-FLAGS=-std=c++0x -I./
+FLAGS=-std=c++0x -O3 -ftree-vectorize -ftree-vectorizer-verbose=7 -I./
+# -fopt-info-vec-missed
 
 HEADERS=$(wildcard *.hpp)
 SOURCES=$(wildcard *.cpp)
