@@ -29,9 +29,12 @@ UVTriangle::UVTriangle(int size, RCS& sfxnmatr) {
     }
 
     compute(sfxnmatr);
-    divide();
+    // TODO: find out a clever way to return both the sums and the variances
+    // Right now, i just want cumulative variances, so don't divide
+    // divide();
 }
 
+// Private function, only used by ctor
 void UVTriangle::compute(RCS& sfxnmatr) {
     // compute
     for(int r = 0; r < pg->getNumRows(); ++r) {
@@ -58,6 +61,7 @@ void UVTriangle::compute(RCS& sfxnmatr) {
     }
 }
 
+// public function, used to do (mean(X))^2
 void UVTriangle::square() {
     for(int r = 0; r < this->pg->getNumRows(); ++ r) {
         for(int c = 0; c < this->pg->getNumCols(); ++ c) {
@@ -66,6 +70,7 @@ void UVTriangle::square() {
     }
 }
 
+// public function, used to do mean(X^2) - (mean(X))^2
 void UVTriangle::subtract(UVTriangle& squared) {
     for(int r = 0; r < this->pg->getNumRows(); ++ r) {
         for(int c = 0; c < this->pg->getNumCols(); ++ c) {
@@ -74,6 +79,7 @@ void UVTriangle::subtract(UVTriangle& squared) {
     }
 }
 
+// private function, used to compute the mean of the triangle, used by ctor
 void UVTriangle::divide() {
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
@@ -82,6 +88,21 @@ void UVTriangle::divide() {
             }
         }
     }
+}
+
+// public function
+float UVTriangle::getSum(int r, int c) {
+    return pg->at(r, c);
+}
+
+// public function
+int UVTriangle::getCount(int r, int c) {
+    return counts->at(r, c);
+}
+
+// public function
+int UVTriangle::getSize() {
+    return pg->getNumRows();
 }
 
 UVTriangle::~UVTriangle() {

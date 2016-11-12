@@ -14,6 +14,11 @@ public:
     void display();
 
     void square();
+
+    // Getters for CumVar
+    float getSum(int r, int c);
+    int getCount(int r, int c);
+    int getSize();
     
     // Do the variance subtraction in place
     void subtract(LVTriangle& squared);

@@ -29,9 +29,11 @@ LVTriangle::LVTriangle(int size, RCS& rScores, RCS& cScores) {
     }
 
     compute(rScores, cScores);
-    divide();
+    // TODO: see UVTriangle. don't divide for now
+    // divide();
 }
 
+// Private function, only used by ctor
 void LVTriangle::compute(RCS& rScores, RCS& cScores) {
     int lastTop;
     int lastBot;
@@ -66,6 +68,7 @@ void LVTriangle::compute(RCS& rScores, RCS& cScores) {
     }
 }
 
+// public function, used to do (mean(X))^2
 void LVTriangle::square() {
     for(int r = 0; r < this->pg->getNumRows(); ++ r) {
         for(int c = 0; c < this->pg->getNumCols(); ++ c) {
@@ -74,6 +77,7 @@ void LVTriangle::square() {
     }
 }
 
+// public function, used to do mean(X^2) - (mean(X))^2
 void LVTriangle::subtract(LVTriangle& squared) {
     for(int r = 0; r < this->pg->getNumRows(); ++ r) {
         for(int c = 0; c < this->pg->getNumCols(); ++ c) {
@@ -82,6 +86,7 @@ void LVTriangle::subtract(LVTriangle& squared) {
     }
 }
 
+// private function, used to compute the mean of the triangle, used by ctor
 void LVTriangle::divide() {
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
@@ -90,6 +95,21 @@ void LVTriangle::divide() {
             }
         }
     }
+}
+
+// public function
+float LVTriangle::getSum(int r, int c) {
+    return pg->at(r, c);
+}
+
+// public function
+int LVTriangle::getCount(int r, int c) {
+    return counts->at(r, c);
+}
+
+// public function
+int LVTriangle::getSize() {
+    return pg->getNumRows();
 }
 
 LVTriangle::~LVTriangle() {
