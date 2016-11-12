@@ -2,7 +2,6 @@
 #define __AGGREGATE_CPP__
 
 #include <cmath>
-#include <cfloat>
 #include <iostream>
 #include <fstream>
 
@@ -45,7 +44,11 @@ void Aggregate::display() {
 void Aggregate::write(std::ofstream& fname) {
     for (int r = 0; r < pg->getNumRows(); ++r) {
         for (int c = 0; c < pg->getNumCols(); ++c) {
-            fname << pg->at(r,c) << "\t";
+            float val = pg->at(r, c);
+            if(std::isnan(val)) {
+                val = -1;
+            }
+            fname << val << "\t";
         }
         fname << std::endl;
     }
