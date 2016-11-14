@@ -1,6 +1,8 @@
 #ifndef __LTRIANGLE_HPP__
 #define __LTRIANGLE_HPP__
 
+#include <fstream>
+
 #include "TwoD_Array.hpp"
 #include "RCS.hpp"
 #include "UTriangle.hpp"
@@ -21,6 +23,7 @@ public:
     void display();
 
     float getValue(int r, int c);
+    void write(std::ofstream& fname);
 
 private:
     // precomputed grid

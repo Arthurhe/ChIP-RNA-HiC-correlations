@@ -1,6 +1,8 @@
 #ifndef __CUMVAR_HPP__
 #define __CUMVAR_HPP__
 
+#include <fstream>
+
 #include "TwoD_Array.hpp"
 #include "UVTriangle.hpp"
 #include "LVTriangle.hpp"
@@ -22,6 +24,7 @@ public:
     int getSize();
 
     float getValue(int r, int c);
+    void write(std::ofstream& fname);
 
     // Do the variance subtraction in place
     void subtract(CumVar& squared);

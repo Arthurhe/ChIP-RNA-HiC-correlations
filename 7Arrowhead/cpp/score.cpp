@@ -187,6 +187,11 @@ int main(int argc, char * argv[]) {
     LTriangle* Ssum = &Lsums;
     Ssum->normalize();
 
+    std::ofstream sumfile;
+    sumfile.open("SsumMatr.txt");
+    Ssum->write(sumfile);
+    sumfile.close();
+
     //Ssum->display();
 
     /**
@@ -199,6 +204,12 @@ int main(int argc, char * argv[]) {
     Lsigns.subtract(Usigns);
     LTriangle* Ssign = &Lsigns;
     Ssign->normalize();
+
+    std::ofstream signfile;
+    signfile.open("SsignMatr.txt");
+    Ssign->write(signfile);
+    signfile.close();
+
 
     //Ssign->display();
 
@@ -223,6 +234,11 @@ int main(int argc, char * argv[]) {
     Svar.subtract(cvtmp);
     Svar.normalize();
 
+    std::ofstream varfile;
+    varfile.open("SvarMatr.txt");
+    Svar.write(varfile);
+    varfile.close();
+
     //Svar.display();
 
     /**
@@ -237,6 +253,7 @@ int main(int argc, char * argv[]) {
     std::ofstream outfile;
     outfile.open("CumScoreMatr.txt");
     Stot.write(outfile);
+    outfile.close();
 
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;
