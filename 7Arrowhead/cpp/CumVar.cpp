@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cfloat>
 #include <iostream>
+#include <cassert>
 
 #include "CumVar.hpp"
 #include "RCS.hpp"
@@ -55,28 +56,33 @@ void CumVar::subtract(CumVar& squared) {
 
 // Scan through variances and get maximum value. Then divide every number by it
 void CumVar::normalize() {
-    // Find max value
+    // Find max and min value
     for(int r = 0; r < this->pg->getNumRows(); ++ r) {
         for(int c = 0; c < this->pg->getNumCols(); ++ c) {
             float val = this->pg->at(r, c);
             if(r == 0 && c == 0) {
                 maxVal = val;
+                minVal = val;
             }
             else if(val > maxVal) {
                 maxVal = val;
             }
+            else if(val < minVal) {
+                minVal = val;
+            }
         }
     }
 
-    // don't divide by zero
+    // don't divide by zero and don't subtract by a negative number
     if(maxVal == 0) {
         maxVal = 1;
     }
+    assert(minVal >= 0);
 
     // divide every value by maxVal
     for(int r = 0; r < this->pg->getNumRows(); ++ r) {
         for(int c = 0; c < this->pg->getNumCols(); ++ c) {
-            this->pg->at(r, c) = this->pg->at(r, c) / maxVal;
+            this->pg->at(r, c) = (this->pg->at(r, c) - minVal) / maxVal;
         }
     }
 }

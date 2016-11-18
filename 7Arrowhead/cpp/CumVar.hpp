@@ -32,6 +32,7 @@ public:
 private:
     void divide();
     float maxVal;
+    float minVal;
 
     // precomputed grid
     TwoD_Array<float>* pg;
