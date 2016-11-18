@@ -67,13 +67,9 @@ void LTriangle::subtract(UTriangle& upper) {
                 pg->at(r, c) = pg->at(r, c) - upper.getValue(r, c);
                 if(r == 0 && c == 0) {
                     maxVal = pg->at(r, c);
-                    minVal = pg->at(r, c);
                 }
                 else if (pg->at(r, c) > maxVal) {
                     maxVal = pg->at(r, c);
-                }
-                else if (pg->at(r, c) < minVal) {
-                    minVal = pg->at(r, c);
                 }
             }
             else {
@@ -89,12 +85,9 @@ void LTriangle::normalize() {
         maxVal = 1;
     }
 
-    // Do not allow negative minimum numbers
-    assert(minVal >= 0);
-
     for(int r = 0; r < this->pg->getNumRows(); ++r) {
         for(int c = 0; c < this->pg->getNumCols(); ++c) {
-            pg->at(r, c) = (pg->at(r, c) - minVal) / maxVal;
+            pg->at(r, c) = pg->at(r, c) / maxVal;
         }
     }
 }

@@ -30,7 +30,6 @@ private:
     TwoD_Array<float>* pg;
 
     float maxVal;
-    float minVal;
 };
 
 #endif
