@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 
 import numpy
+import argparse
 
 
 def main():
+    # parse input arguments
+    parser = argparse.ArgumentParser()
+    required = parser.add_argument_group("required argument")
+    required.add_argument("-i", "--infile", required=True, help="The HiC data file to transform")
+    args = parser.parse_args()
+
     # read original matrix from file
-    datamatr = numpy.loadtxt("testdata.txt")
+    datamatr = numpy.loadtxt(args.infile)
     nrow, ncol = datamatr.shape
 
     # Transformed matrix zero-initialized
