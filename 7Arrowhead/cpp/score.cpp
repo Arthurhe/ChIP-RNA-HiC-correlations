@@ -145,36 +145,6 @@ int main(int argc, char * argv[]) {
     RCS normRowSigns(norm_matr, 'r', 'i');
     LTriangle Lsigns(size1, normRowSigns, normColSigns);
     // Lsigns.display();
-    
-    /**
-     * ====================================================================
-     * Compute U_var
-     * ====================================================================
-     */
-    // now = std::time(0);
-    // std::cout << "[Elapsed: " << now - start << "s]\tComputing Uvars" << std::endl;
-    // RCS squaredColSums(squared_matr, 'c', 's');
-    // UVTriangle utmp = UVTriangle(size1, normColSums);
-    // UVTriangle Uvar = UVTriangle(size2, squaredColSums);
-    // utmp.square();
-    // Uvar.subtract(utmp);
-
-    // Uvar.display();
-
-    /**
-     * ====================================================================
-     * Compute L_var
-     * ====================================================================
-     */
-    // now = std::time(0);
-    // std::cout << "[Elapsed: " << now - start << "s]\tComputing Lvars" << std::endl;
-    // RCS squaredRowSums(squared_matr, 'r', 's');
-    // LVTriangle ltmp = LVTriangle(size1, normRowSums, normColSums);
-    // LVTriangle Lvar = LVTriangle(size2, squaredRowSums, squaredColSums);
-    // ltmp.square();
-    // Lvar.subtract(ltmp);
-
-    // Lvar.display();
 
     /**
      * ====================================================================
@@ -183,13 +153,18 @@ int main(int argc, char * argv[]) {
      */
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tComputing S_sum = L_sum - U_sum" << std::endl;
-    Lsums.subtract(Usums);
-    LTriangle* Ssum = &Lsums;
-    Ssum->normalize();
+    LTriangle Ssum = LTriangle(Lsums);
+    Ssum.subtract(Usums);
+    Ssum.normalize();
+
+    // TODO: replace with a copy constructor thing
+    // Lsums.subtract(Usums);
+    // LTriangle* Ssum = &Lsums;
+    // Ssum->normalize();
 
     std::ofstream sumfile;
     sumfile.open("SsumMatr.txt");
-    Ssum->write(sumfile);
+    Ssum.write(sumfile);
     sumfile.close();
 
     //Ssum->display();
@@ -201,13 +176,18 @@ int main(int argc, char * argv[]) {
      */
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tComputing S_sign = L_sign - U_sign" << std::endl;
-    Lsigns.subtract(Usigns);
-    LTriangle* Ssign = &Lsigns;
-    Ssign->normalize();
+    LTriangle Ssign = LTriangle(Lsigns);
+    Ssign.subtract(Usigns);
+    Ssign.normalize();
+
+    // TODO: replace with a copy constructor thing
+    // Lsigns.subtract(Usigns);
+    // LTriangle* Ssign = &Lsigns;
+    // Ssign->normalize();
 
     std::ofstream signfile;
     signfile.open("SsignMatr.txt");
-    Ssign->write(signfile);
+    Ssign.write(signfile);
     signfile.close();
 
 
@@ -248,7 +228,7 @@ int main(int argc, char * argv[]) {
      */
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tAggregating scores to make S'" << std::endl;
-    Aggregate Stot = Aggregate(*Ssum, *Ssign, Svar);
+    Aggregate Stot = Aggregate(Ssum, Ssign, Svar);
     //Stot.display();
     std::ofstream outfile;
     outfile.open("CumScoreMatr.txt");

@@ -54,6 +54,18 @@ LTriangle::LTriangle(int size, RCS& rScores, RCS& cScores) {
     }
 }
 
+// Copy Constructor - make a new copy of the TwoD_array
+LTriangle::LTriangle(const LTriangle& orig) {
+    pg = new TwoD_Array<float>(orig.pg->getNumRows(), orig.pg->getNumCols());
+    for(int r = 0; r < pg->getNumRows(); ++r) {
+        for(int c = 0; c < pg->getNumCols(); ++c) {
+            pg->at(r, c) = orig.pg->at(r, c);
+        }
+    }
+
+    maxVal = orig.maxVal;
+}
+
 LTriangle::~LTriangle() {
     delete pg;
     pg = 0;
