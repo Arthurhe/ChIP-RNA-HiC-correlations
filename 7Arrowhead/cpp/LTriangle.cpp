@@ -9,6 +9,7 @@
 #include "LTriangle.hpp"
 #include "RCS.hpp"
 #include "UTriangle.hpp"
+#include "LVTriangle.hpp"
 
 LTriangle::LTriangle(int size, RCS& rScores, RCS& cScores) {
     // sanity checks?
@@ -110,6 +111,20 @@ float LTriangle::getValue(int r, int c) {
 
 void LTriangle::display() {
     (*pg).printOut();
+}
+
+void LTriangle::setCountPtr(LVTriangle& Lower) {
+    lower = &Lower;
+}
+
+// Function to divide each number in the matrix by the number of elements in the
+// triangle that it represents. This operation is performed in place.
+void LTriangle::calcMean() {
+    for(int r = 0; r < pg->getNumRows(); ++r) {
+        for(int c = 0; c < pg->getNumCols(); ++c) {
+            pg->at(r, c) = pg->at(r, c) / lower->getCount(r, c);
+        }
+    }
 }
 
 void LTriangle::write(std::ofstream& fname) {

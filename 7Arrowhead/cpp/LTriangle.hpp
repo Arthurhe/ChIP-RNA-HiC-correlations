@@ -6,6 +6,7 @@
 #include "TwoD_Array.hpp"
 #include "RCS.hpp"
 #include "UTriangle.hpp"
+#include "LVTriangle.hpp"
 
 class LTriangle{
 public:
@@ -26,11 +27,20 @@ public:
     float getValue(int r, int c);
     void write(std::ofstream& fname);
 
+    // Sets the pointers for lower so I can get the count
+    void setCountPtr(LVTriangle& Lower);
+    void calcMean();
+
 private:
     // precomputed grid
     TwoD_Array<float>* pg;
 
     float maxVal;
+
+    // Pointers to the UVTriangle and LVTriangle objects: They have matrices
+    // containing the number of elements in each triangle. Used for computing
+    // mean(sign(Upper/Lower)) in the filtering step.
+    LVTriangle* lower;
 };
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "TwoD_Array.hpp"
 #include "RCS.hpp"
+#include "UVTriangle.hpp"
 
 class UTriangle{
 public:
@@ -15,9 +16,14 @@ public:
 
     void display();
 
+    void setCountPtr(UVTriangle& Upper);
+    void calcMean();
+
 private:
     // precomputed grid
     TwoD_Array<float>* pg;
+
+    UVTriangle* upper;
 };
 
 #endif
