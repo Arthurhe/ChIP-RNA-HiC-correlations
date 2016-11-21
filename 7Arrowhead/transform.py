@@ -36,6 +36,8 @@ def main():
             rval = datamatr.item(currow, rindex)
             numer = lval - rval
             denom = lval + rval
+            if denom == 0:
+                denom = 1
             tval = numer / denom
             numpy.put(transmat, onedindex, tval)
 
