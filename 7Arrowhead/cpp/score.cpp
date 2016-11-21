@@ -242,6 +242,8 @@ int main(int argc, char * argv[]) {
      */
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tFiltering scores to make S" << std::endl;
+    Usigns.setCountPtr(untmp);
+    Lsigns.setCountPtr(lntmp);
     Usigns.calcMean();
     Lsigns.calcMean();
     Stot.filter1(Usigns, Lsigns, Svar);
@@ -258,6 +260,7 @@ int main(int argc, char * argv[]) {
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tCreating binary matrix" << std::endl;
     Aggregate binaryMatr = Aggregate(Stot);
+    binaryMatr.toBinary();
     std::ofstream binary;
     binary.open("BinaryMatrix.txt");
     binaryMatr.write(binary);

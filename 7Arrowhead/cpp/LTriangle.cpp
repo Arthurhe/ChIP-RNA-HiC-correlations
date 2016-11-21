@@ -120,9 +120,16 @@ void LTriangle::setCountPtr(LVTriangle& Lower) {
 // Function to divide each number in the matrix by the number of elements in the
 // triangle that it represents. This operation is performed in place.
 void LTriangle::calcMean() {
+    float count;
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
-            pg->at(r, c) = pg->at(r, c) / lower->getCount(r, c);
+            if(lower->getCount(r, c) == 0) {
+                count = 1;
+            }
+            else{
+                count = lower->getCount(r, c);
+            }
+            pg->at(r, c) = pg->at(r, c) / count;
         }
     }
 }

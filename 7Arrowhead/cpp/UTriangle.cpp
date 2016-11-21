@@ -66,9 +66,16 @@ void UTriangle::setCountPtr(UVTriangle& Upper) {
 // Function to divide each number in the matrix by the number of elements in the
 // triangle that it represents. This operation is performed in place.
 void UTriangle::calcMean() {
+    float count;
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
-            pg->at(r, c) = pg->at(r, c) / upper->getCount(r, c);
+            if(upper->getCount(r, c) == 0) {
+                count = 1;
+            }
+            else{
+                count = upper->getCount(r, c);
+            }
+            pg->at(r, c) = pg->at(r, c) / count;
         }
     }
 }

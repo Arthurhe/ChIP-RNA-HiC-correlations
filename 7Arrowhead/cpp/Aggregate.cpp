@@ -90,7 +90,10 @@ void Aggregate::toBinary() {
     for(int r = 0; r < pg->getNumRows(); ++r) {
         for(int c = 0; c < pg->getNumCols(); ++c) {
             if(pg->at(r, c) > 0) {
-                pg->at(r,c ) = 1;
+                pg->at(r, c) = 1;
+            }
+            else{
+                pg->at(r, c) = 0;
             }
         }
     }
