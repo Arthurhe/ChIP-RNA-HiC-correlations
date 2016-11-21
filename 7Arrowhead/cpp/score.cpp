@@ -235,6 +235,34 @@ int main(int argc, char * argv[]) {
     Stot.write(outfile);
     outfile.close();
 
+    /**
+     * ====================================================================
+     * Filter Scores to make S
+     * ====================================================================
+     */
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tFiltering scores to make S" << std::endl;
+    Usigns.calcMean();
+    Lsigns.calcMean();
+    Stot.filter1(Usigns, Lsigns, Svar);
+    std::ofstream filtered;
+    filtered.open("FilteredScoreMatr.txt");
+    Stot.write(filtered);
+    filtered.close();
+
+    /**
+     * ====================================================================
+     * Create binary matrix for connected component analysis
+     * ====================================================================
+     */
+    now = std::time(0);
+    std::cout << "[Elapsed: " << now - start << "s]\tCreating binary matrix" << std::endl;
+    Aggregate binaryMatr = Aggregate(Stot);
+    std::ofstream binary;
+    binary.open("BinaryMatrix.txt");
+    binaryMatr.write(binary);
+    binary.close();
+
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;
     
