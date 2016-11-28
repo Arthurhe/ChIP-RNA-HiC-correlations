@@ -16,8 +16,11 @@ RCS::RCS (TwoD_Array<float>& grid, char rc, char func) {
     assert(func == 's' || func == 'i');
 
     // Create the pre-computed grid
-    if(rc == 'r' || rc == 'c') {
-        pg = new TwoD_Array<float>(grid.getNumRows(), grid.getNumCols());
+    if(rc == 'r') {
+        pg = new ThreeD_Array<float>(grid.getNumRows(), grid.getNumRows(), grid.getNumCols());
+    }
+    else if (rc == 'c') {
+        pg = new ThreeD_Array<float>(grid.getNumCols(), grid.getNumRows(), grid.getNumCols());
     }
     else {
         std::cerr << "Must select either rows or columns" << std::endl;
@@ -25,14 +28,16 @@ RCS::RCS (TwoD_Array<float>& grid, char rc, char func) {
     }
 
     // Initialize all values to 0
-    for(int r = 0; r < pg->getNumCols(); ++r) {
-        for(int c = 0; c < pg->getNumRows(); ++c) {
-            pg->at(r, c) = 0;
+    for(int d = 0; d < pg->getDepth(); ++d) {
+        for(int i = 0; i < pg->getNumCols(); ++i) {
+            for(int j = 0; j < pg->getNumRows(); ++j) {
+                pg->at(d, j, i) = 0;
+            }
         }
     }
 
     // Select function based on parameter
-    float (*fxn)(float, float, float);
+    float (*fxn)(float, float);
     if(func == 's') {
         fxn = &RCS::sum;
     }
@@ -42,10 +47,14 @@ RCS::RCS (TwoD_Array<float>& grid, char rc, char func) {
 
     // Compute the sums using DP
     if(rc == 'r') {
-        RCS::calculate('r', func, grid, fxn);
+        for(int d = 0; d < grid.getNumRows(); ++d) {
+            RCS::calculate(d, 'r', func, grid, fxn);
+        }
     }
     else {
-        RCS::calculate('c', func, grid, fxn);
+        for(int d = 0; d < grid.getNumCols(); ++d) {
+            RCS::calculate(d, 'c', func, grid, fxn);
+        }
     }
 }
 
@@ -54,85 +63,54 @@ RCS::~RCS() {
     pg = 0;
 }
 
-// Function to compute the DP recurrence
-void RCS::calculate (char rc, char func, TwoD_Array<float>& grid, float(*f)(float, float, float)) {
-    if(rc == 'r') {
-        for(int r = 0; r < pg->getNumRows(); ++r) {
-            for(int c = 0; c < pg->getNumCols(); ++c) {
-                // Base Case
-                if(r == c) {
-                    if(func == 's') {
-                        pg->at(r, c) = grid.at(r, c);
-                    }
-                    else if(func == 'i') {
-                        pg->at(r, c) = (grid.at(r, c) >= 0) ? 1 : -1;
-                    }
-                }
+// Function to compute the DP recurrence per row/column of the given grid
+void RCS::calculate (int d, char rc, char func, TwoD_Array<float>& grid, float(*f)(float, float)) {
+    for(int r = 0; r < pg->getNumRows(); ++r) {
+        for(int c = 0; c < pg->getNumCols(); ++c) {
 
-                // Recurrence
-                else if (r < c) {
-                    pg->at(r, c) = (*f)(pg->at(r-1, c-1), grid.at(r, c));
+            // Base Case
+            if(r == 0 && rc == 'r') {
+                if(func == 's') {
+                    pg->at(d, r, c) = grid.at(d, c);
                 }
-
-                // else set to maxint?
-                else {
-                    pg->at(r, c) = nanf("");
+                else if(func == 'i') {
+                    pg->at(d, r, c) = (grid.at(d, c) >= 0) ? 1 : -1;
                 }
             }
-        }
-    }
-    else if(rc == 'c') {
-        int lowerIndex;
-        int lowerMod;
-        float prevDPVal;
-        float toSubtract;
-        float toAdd;
-        for(int r = 0; r < pg->getNumRows(); ++r) {
-            for(int c = 0; c < pg->getNumCols(); ++c) {
-                lowerIndex = floor(((float)(r+c))/2);
-                lowerMod = (r+c) % 2;
+            else if (r == 0 && rc == 'c') {
+                if(func == 's') {
+                    pg->at(d, r, c) = grid.at(c, d);
+                }
+                else if (func == 'i') {
+                    pg->at(d, r, c) = (grid.at(c, d) >= 0) ? 1 : -1;
+                }
+            }
 
-                // base case
-                if (r == c) {
-                    if(func == 's') {
-                        pg->at(r, c) = grid.at(r, c);
-                    }
-                    else if (func == 'i') {
-                        pg->at(r, c) = (grid.at(r, c) >= 0) ? 1 : -1;
-                    }
-                }
+            // Recurrence
+            else if (r > 0 && c > 0 && c >= r && rc == 'r') {
+                pg->at(d, r, c) = (*f)(pg->at(d, r-1, c-1), grid.at(d, c));
+            }
+            else if (r > 0 && c > 0 && c >= r && rc == 'c') {
+                pg->at(d, r, c) = (*f)(pg->at(d, r-1, c-1), grid.at(c, d));
+            }
 
-                // recurrence
-                else if (r < c && lowerMod != 0) {
-                    prevDPVal = pg->at(r-1, c);
-                    toSubtract = grid.at(r-1, c);
-                    toAdd = 0;
-                    pg->at(r, c) = (*f)(prevDPVal, toSubtract, toAdd);
-                }
-                else if (r < c && lowerMod == 0) {
-                    prevDPVal = pg->at(r-1, c);
-                    toSubtract = grid.at(r-1, c);
-                    toAdd = grid.at(lowerIndex, c);
-                    pg->at(r, c) = (*f)(prevDPVal, toSubtract, toAdd);
-                }
-
-                // else set to maxint?
-                else {
-                    pg->at(r, c) = nanf("");
-                }
+            // else set to maxint?
+            else {
+                pg->at(d, r, c) = nanf("");
             }
         }
     }
 }
 
-float RCS::sum(float a, float b, float c) {
-    return a - b + c;
+float RCS::sum(float a, float b) {
+    return a + b;
 }
 
-float RCS::sign(float a, float b, float c) {
-    float csign = (c >= 0) ? 1 : -1;
+float RCS::sign(float a, float b) {
+    float asign = (a >= 0) ? 1 : -1;
+    float bsign = (b >= 0) ? 1 : -1;
 
-    return a - b + csign;
+    return asign + bsign;
 }
 
 // Perform the query step here

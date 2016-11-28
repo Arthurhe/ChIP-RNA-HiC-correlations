@@ -12,7 +12,10 @@ public:
     // n represents number of rows,
     // m represents number of columns
     ThreeD_Array (int o, int n, int m): o(o), n(n), m(m) {
-        linear_array = new T[n * m * o];
+        linear_array = new T*[o];
+        for(int i = 0; i < o; ++i) {
+            linear_array[i] = new T[n * m];
+        }
     }
 
     ~ThreeD_Array() {
@@ -26,7 +29,7 @@ public:
         assert(d < o && d >= 0);
         assert(r < n && r >= 0);
         assert(c < m && c >= 0);
-        return linear_array[(d*o*m) + (r*m) + c];
+        return linear_array[d][(r*m) + c];
     }
 
     // returns number of rows
@@ -56,7 +59,7 @@ public:
     }
 
 private:
-    T * linear_array;
+    T** linear_array;
     int n;
     int m;
     int o;

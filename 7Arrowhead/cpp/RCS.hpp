@@ -16,14 +16,14 @@ public:
 
 private:
     // The DP algorithm implementation
-    void calculate(char rc, char func, TwoD_Array<float>& grid, float (*f)(float, float, float));
+    void calculate(int d, char rc, char func, TwoD_Array<float>& grid, float (*f)(float, float));
 
     // Scoring functions
-    static float sum(float a, float b, float c);
-    static float sign(float a, float b, float c);
+    static float sum(float a, float b);
+    static float sign(float a, float b);
 
     // pg is the precomputed grid
-    TwoD_Array<float> * pg;
+    ThreeD_Array<float> * pg;
 };
 
 #endif
