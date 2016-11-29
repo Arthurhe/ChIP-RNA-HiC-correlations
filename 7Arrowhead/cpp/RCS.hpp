@@ -12,18 +12,19 @@ public:
 
     float query(int rcNum, int from, int to);
 
-    void printOut(int d);
+    void printOut();
 
 private:
-    // The DP algorithm implementation
-    void calculate(int d, char rc, char func, TwoD_Array<float>& grid, float (*f)(float, float));
 
     // Scoring functions
     static float sum(float a, float b);
     static float sign(float a, float b);
 
+    char operation;
+    char rowcol;
+
     // pg is the precomputed grid
-    ThreeD_Array<float> * pg;
+    TwoD_Array<float>* pg;
 };
 
 #endif
