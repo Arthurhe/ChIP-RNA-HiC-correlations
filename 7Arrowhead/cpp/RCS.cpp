@@ -53,6 +53,18 @@ float RCS::query (int rcNum, int from, int to) {
 
     if(this->rowcol == 'c') {
         retval = pg->at(from, rcNum);
+        if(operation == 'i') {
+            if(retval > 0) {
+                retval = 1;
+            }
+            else if(retval < 0) {
+                retval = -1;
+            }
+            else{
+                retval = 0;
+            }
+        }
+
         for(int r = from+1; r <= to; ++r) {
             if(operation == 's') {
                 retval = sum(retval, pg->at(r, rcNum));
@@ -64,6 +76,18 @@ float RCS::query (int rcNum, int from, int to) {
     }
     else{
         retval = pg->at(rcNum, from);
+        if(operation == 'i') {
+            if(retval > 0) {
+                retval = 1;
+            }
+            else if(retval < 0) {
+                retval = -1;
+            }
+            else{
+                retval = 0;
+            }
+        }
+
         for(int c = from+1; c <= to; ++c) {
             if(operation == 's') {
                 retval = sum(retval, pg->at(rcNum, c));
