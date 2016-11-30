@@ -70,6 +70,36 @@ void Aggregate::filter1(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar
     }
 }
 
+// Filter by Svar
+void Aggregate::filtervar(CumVar& Svar) {
+    for(int r = 0; r < pg->getNumRows(); ++r) {
+        for(int c = 0; c < pg->getNumCols(); ++c) {
+            if(Svar.getValue(r, c) < var_t) {
+                pg->at(r, c) = 0;
+            }
+            else if(pg->at(r, c) == -1) {
+                pg->at(r, c) = 0;
+            }
+        }
+    }
+}
+
+// Filter by Mean(Sign(Upper/Lower))
+void Aggregate::filtersign(UTriangle& meanUSign, LTriangle& meanLSign) {
+    for(int r = 0; r < pg->getNumRows(); ++r) {
+        for(int c = 0; c < pg->getNumCols(); ++c) {
+            if(meanUSign.getValue(r, c) < usign_t1) {
+                pg->at(r, c) = 0;
+            } else if(meanLSign.getValue(r, c) > lsign_t1) {
+                pg->at(r, c) = 0;
+            }
+            else if(pg->at(r, c) == -1) {
+                pg->at(r, c) = 0;
+            }
+        }
+    }
+}
+
 // TODO: not used yet. just try to get one level threshold working first
 void Aggregate::filter2(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar) {
     for(int r = 0; r < pg->getNumRows(); ++r) {

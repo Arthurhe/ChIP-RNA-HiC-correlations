@@ -17,6 +17,10 @@ public:
 
     void filter1(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar);
     void filter2(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar);
+
+    void filtervar(CumVar& Svar);
+    void filtersign(UTriangle& meanUSign, LTriangle& meanLSign);
+
     void toBinary();
 
     void display();

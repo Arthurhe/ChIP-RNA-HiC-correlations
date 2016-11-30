@@ -246,11 +246,18 @@ int main(int argc, char * argv[]) {
     Lsigns.setCountPtr(lntmp);
     Usigns.calcMean();
     Lsigns.calcMean();
-    Stot.filter1(Usigns, Lsigns, Svar);
-    std::ofstream filtered;
-    filtered.open("FilteredScoreMatr.txt");
-    Stot.write(filtered);
-    filtered.close();
+    Aggregate filterVar = Aggregate(Stot);
+    Aggregate filterSign = Aggregate(Stot);
+    filterVar.filtervar(Svar);
+    filterSign.filtersign(Usigns, Lsigns);
+    std::ofstream varfiltered;
+    std::ofstream signfiltered;
+    varfiltered.open("VarFiltered.txt");
+    filterVar.write(varfiltered);
+    varfiltered.close();
+    signfiltered.open("SignFiltered.txt");
+    filterVar.write(signfiltered);
+    signfiltered.close();
 
     /**
      * ====================================================================
