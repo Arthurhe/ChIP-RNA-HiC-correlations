@@ -256,7 +256,7 @@ int main(int argc, char * argv[]) {
     filterVar.write(varfiltered);
     varfiltered.close();
     signfiltered.open("SignFiltered.txt");
-    filterVar.write(signfiltered);
+    filterSign.write(signfiltered);
     signfiltered.close();
 
     /**
