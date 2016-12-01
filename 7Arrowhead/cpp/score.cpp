@@ -246,11 +246,71 @@ int main(int argc, char * argv[]) {
     Lsigns.setCountPtr(lntmp);
     Usigns.calcMean();
     Lsigns.calcMean();
-    Stot.filter1(Usigns, Lsigns, Svar, 0.2, 0.5);
-    std::ofstream filtered;
-    filtered.open("FilteredScoreMatr.txt");
-    Stot.write(filtered);
-    filtered.close();
+
+    Aggregate sign01 = Aggregate(Stot);
+    Aggregate sign02 = Aggregate(Stot);
+    Aggregate sign03 = Aggregate(Stot);
+    Aggregate sign04 = Aggregate(Stot);
+    Aggregate sign05 = Aggregate(Stot);
+    Aggregate sign06 = Aggregate(Stot);
+    Aggregate sign07 = Aggregate(Stot);
+    Aggregate sign08 = Aggregate(Stot);
+    Aggregate sign09 = Aggregate(Stot);
+
+    sign01.filter1(Usigns, Lsigns, Svar, 0.2, 0.1);
+    sign02.filter1(Usigns, Lsigns, Svar, 0.2, 0.2);
+    sign03.filter1(Usigns, Lsigns, Svar, 0.2, 0.3);
+    sign04.filter1(Usigns, Lsigns, Svar, 0.2, 0.4);
+    sign05.filter1(Usigns, Lsigns, Svar, 0.2, 0.5);
+    sign06.filter1(Usigns, Lsigns, Svar, 0.2, 0.6);
+    sign07.filter1(Usigns, Lsigns, Svar, 0.2, 0.7);
+    sign08.filter1(Usigns, Lsigns, Svar, 0.2, 0.8);
+    sign09.filter1(Usigns, Lsigns, Svar, 0.2, 0.9);
+
+    std::ofstream filtered01;
+    filtered01.open("filtered01.txt");
+    sign01.write(filtered01);
+    filtered01.close();
+
+    std::ofstream filtered02;
+    filtered02.open("filtered02.txt");
+    sign02.write(filtered02);
+    filtered02.close();
+
+    std::ofstream filtered03;
+    filtered03.open("filtered03.txt");
+    sign03.write(filtered03);
+    filtered03.close();
+
+    /**std::ofstream filtered04;
+    filtered04.open("filtered04.txt");
+    sign04.write(filtered04);
+    filtered04.close();
+
+    std::ofstream filtered05;
+    filtered05.open("filtered05.txt");
+    sign05.write(filtered05);
+    filtered05.close();
+
+    std::ofstream filtered06;
+    filtered06.open("filtered06.txt");
+    sign06.write(filtered06);
+    filtered06.close();
+
+    std::ofstream filtered07;
+    filtered07.open("filtered07.txt");
+    sign07.write(filtered07);
+    filtered07.close();
+
+    std::ofstream filtered08;
+    filtered08.open("filtered08.txt");
+    sign08.write(filtered08);
+    filtered08.close();
+
+    std::ofstream filtered09;
+    filtered09.open("filtered09.txt");
+    sign09.write(filtered09);
+    filtered09.close();*/
 
     /**
      * ====================================================================
@@ -259,12 +319,27 @@ int main(int argc, char * argv[]) {
      */
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tCreating binary matrix" << std::endl;
-    Aggregate binaryMatr = Aggregate(Stot);
-    binaryMatr.toBinary();
-    std::ofstream binary;
-    binary.open("BinaryMatrix.txt");
-    binaryMatr.write(binary);
-    binary.close();
+    Aggregate binaryMatr1 = Aggregate(sign01);
+    Aggregate binaryMatr2 = Aggregate(sign02);
+    Aggregate binaryMatr3 = Aggregate(sign03);
+
+    binaryMatr1.toBinary();
+    std::ofstream binary1;
+    binary1.open("BinaryMatrix01.txt");
+    binaryMatr1.write(binary1);
+    binary1.close();
+
+    binaryMatr2.toBinary();
+    std::ofstream binary2;
+    binary2.open("BinaryMatrix02.txt");
+    binaryMatr2.write(binary2);
+    binary2.close();
+
+    binaryMatr3.toBinary();
+    std::ofstream binary3;
+    binary3.open("BinaryMatrix03.txt");
+    binaryMatr3.write(binary3);
+    binary3.close();
 
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;
