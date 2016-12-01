@@ -15,8 +15,8 @@ public:
     Aggregate(const Aggregate& original);
     ~Aggregate();
 
-    void filter1(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar);
-    void filter2(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar);
+    void filter1(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar, float var_t, float sign_t);
+    // void filter2(UTriangle& meanUSign, LTriangle& meanLSign, CumVar& Svar);
     void toBinary();
 
     void display();

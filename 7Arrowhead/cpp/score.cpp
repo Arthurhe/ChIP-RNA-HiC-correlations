@@ -246,7 +246,7 @@ int main(int argc, char * argv[]) {
     Lsigns.setCountPtr(lntmp);
     Usigns.calcMean();
     Lsigns.calcMean();
-    Stot.filter1(Usigns, Lsigns, Svar);
+    Stot.filter1(Usigns, Lsigns, Svar, 0.2, 0.5);
     std::ofstream filtered;
     filtered.open("FilteredScoreMatr.txt");
     Stot.write(filtered);
