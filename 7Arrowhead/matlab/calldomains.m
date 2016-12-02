@@ -37,3 +37,4 @@ end
 
 % write the list of indices to a file, or return them as output
 wut = [domain_boundaries_r domain_boundaries_c];
+dlmwrite('boundaries.txt', wut, '\t');
