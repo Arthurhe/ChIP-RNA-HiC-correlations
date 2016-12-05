@@ -6,16 +6,33 @@
 #################################
 #function in db_build
 get_MarkMatrix=function(position_info,dbhandle,target_cell_type,target_markers){
+  #create the namelist for grepping (cell_type + marker)
   tblname_list=paste(target_cell_type,target_markers,sep="_")
   chr=position_info[1]
   posstart=position_info[2]-500
-  posstopstart=position_info[3]-500
+  posstopstart=position_info[3]
   coverage_list=lapply(tblname_list,function(x){return(
     dbGetQuery(dbhandle,paste("SELECT coverage FROM ",x," WHERE chr='",chr,"' AND start>",posstart," AND start<",posstopstart,sep="")))})
+  #the matrix will composed fo marker in coloum, position in row
   marker_matrix=do.call(cbind, coverage_list)
   colnames(marker_matrix)=target_markers
   return(marker_matrix)
 }
+
+matrix_percentail_shrink=function(marker_matrix,divide_into=10){
+  if(divide_into<1){stop("must divide the matrix into more than 1 chunk")}
+  rownum=nrow(marker_matrix)
+  merging_pair=matrix(0,divide_into,2)
+  merging_pair[,1]=round(seq(1,rownum,rownum/divide_into))
+  merging_pair[,2]=round(seq(rownum/divide_into,rownum,rownum/divide_into))
+  newmatrix=matrix(0,divide_into,ncol(marker_matrix))
+  for(i in 1:divide_into){
+    newmatrix[i,]=colMeans(marker_matrix[merging_pair[i,1]:merging_pair[i,2],])
+  }
+  colnames(newmatrix)=colnames(marker_matrix)
+  return(newmatrix)
+}
+
 
 #still working on the batch stuff
 get_MarkMatrix_batch=function(position_info,dbhandle,target_cell_type,target_markers){
@@ -37,7 +54,7 @@ get_MarkMatrix_batch=function(position_info,dbhandle,target_cell_type,target_mar
   return(marker_matrix)
 }
 
-matrix_shrink=function(thematrix,threshold=0.1,getridofmid=T){
+matrix_nozeros_shrink=function(thematrix,threshold=0.1,getridofmid=T){
   if(getridofmid){
     thematrix=thematrix[seq(1,nrow(thematrix),2),]
   }
@@ -205,25 +222,26 @@ FindFeature_Advance2=function(feature,featurelib_matrix=NA,cluster_info=NA,dista
   }
 }
 
-FeatureMatrixGenerator=function(feature_vec_list,featureNum,cluster_idx=NULL){
+FeatureMatrixGenerator=function(feature_vec_list,featureNum,cluster_idx=1:length(featureNum),peak_region_matrix=NULL){
   #generate feature_matrix, which is a matrix showing times of apperance of each feature in each sample
   #feature_vec_list is a list of samples, each sample represented by a vector of features (the output of feature_vec_list)
   #cluster_idx is the index list of cluster of all feature, calculated by cluster algo
+  #region_matrix is a 2 col matrix, representing which region is the region that count for feature appearance
   sampleNum=length(feature_vec_list)
-  if(!is.null(cluster_idx)){
-    featureMatrix=matrix(0,sampleNum,max(cluster_idx))
-    for(i in 1:sampleNum){
-      feature_count_table=as.data.frame(table(feature_vec_list[i]))
-      feature_count_table[,1]=as.numeric(levels(feature_count_table[,1])[feature_count_table[,1]])#convert factor to numeric
-      for(x in 1:nrow(feature_count_table)){featureMatrix[i,cluster_idx[feature_count_table[x,1]]]=featureMatrix[i,cluster_idx[feature_count_table[x,1]]]+feature_count_table[x,2]}
+  featureWCenter=as.integer(rownames(peak_region_matrix))
+  featureMatrix=matrix(0,sampleNum,max(cluster_idx))
+  for(i in 1:sampleNum){
+    convert_to_clusteridx=as.vector(cluster_idx[feature_vec_list[[i]]])
+    feature_count_table=Vector_stat_table(convert_to_clusteridx)
+    rownames(feature_count_table)=feature_count_table[,1]
+    featureWCenter_current=feature_count_table[,1][feature_count_table[,1] %in% featureWCenter]
+    featureNoCenter_current=feature_count_table[,1][!feature_count_table[,1] %in% featureWCenter]
+    for(x in featureWCenter_current){
+        featurePosi=which(feature_vec_list[[i]]==x)
+        featureMatrix[i,feature_count_table[as.character(x),1]]=sum(featurePosi>=peak_region_matrix[as.character(x),1] & featurePosi<=peak_region_matrix[as.character(x),2])
     }
-  }
-  else{
-    featureMatrix=matrix(0,sampleNum,featureNum)
-    for(i in 1:sampleNum){
-      feature_count_table=as.data.frame(table(feature_vec_list[i]))
-      feature_count_table[,1]=as.numeric(levels(feature_count_table[,1])[feature_count_table[,1]])#convert factor to numeric
-      for(x in 1:nrow(feature_count_table)){featureMatrix[i,feature_count_table[x,1]]=feature_count_table[x,2]}
+    for(x in featureNoCenter_current){
+        featureMatrix[i,feature_count_table[as.character(x),1]]=feature_count_table[as.character(x),2]
     }
   }
   return(featureMatrix)
@@ -254,28 +272,72 @@ FeatureDistributionListGenrator_relative=function(positive_sample_list,cluster_i
   featureDistriMatrix=matrix(0,max(cluster_idx),100)
 }
 
-FeatureDistriListGenrator_abs=function(sample_list,cluster_idx){
+FeatureDistriListGenrator_abs=function(sample_list,cluster_idx,Poisson_threshold=0.05){
   featureDistriList=vector(mode="list", length=max(cluster_idx))#initialize list of vector
   for(i in 1:length(sample_list)){
     currentFeatureVec=cluster_idx[sample_list[[i]]]
     featurePresent=unique(currentFeatureVec)
     for(k in featurePresent){
-      featurePosi=pmin(which(currentFeatureVec==k),length(currentFeatureVec)+1-which(currentFeatureVec==k))
+      featurePosi=pmin(which(currentFeatureVec==k),length(currentFeatureVec)+1-which(currentFeatureVec==k)) #the position feature showed up
       featureDistriList[[k]]=c(featureDistriList[[k]],featurePosi)
     }
   }
-  #stat & find peak
-  #two vector not same length
-  for(k in 1:max(cluster_idx)){
-    featureDistriList[[k]]=Feature_posistat_vec(posifeatureDistriList[[k]])
-    
-  }
+  #convert all postion number to stat of number of apperance in each position
+  featureDistriList=lapply(1:max(cluster_idx),function(k){Feature_posistat_vec(featureDistriList[[k]])})
   return(featureDistriList)
 }
 
+FeaturePositionScoreMatrixGenerator=function(featureDistriList_pos,featureDistriList_neg=NULL,Poisson_threshold=0.01){
+  #generate the region that matters for positive feature or negative feature
+  if(is.null(featureDistriList_neg)){
+    peak_region_list=lapply(1:length(featureDistriList_pos),function(k){
+      peak_region=FeaturePeakFinder(featureDistriList_pos[[k]],Poisson_threshold=Poisson_threshold)
+      return(peak_region)
+    })
+    peak_region_list=rlist::list.clean(peak_region_list)
+    peak_region_matrix=do.call(rbind,peak_region_list)
+    rownames(peak_region_matrix)=names(peak_region_list)
+  }else{
+    peak_region_list=lapply(1:length(featureDistriList_pos),function(k){
+      pos_length=length(featureDistriList_pos[[k]])
+      neg_length=length(featureDistriList_neg[[k]])
+      if(pos_length>neg_length){
+        featureDistriVec=featureDistriList_pos[[k]]-c(featureDistriList_neg[[k]],rep(0,pos_length-neg_length))
+      }else if(pos_length<neg_length){
+        featureDistriVec=c(featureDistriList_pos[[k]],rep(0,neg_length-pos_length))-featureDistriList_neg[[k]]
+      }else{featureDistriVec=featureDistriList_pos[[k]]-featureDistriList_neg[[k]]}
+      pos_peak_region=FeaturePeakFinder(featureDistriVec,Poisson_threshold=Poisson_threshold)
+      return(pos_peak_region)
+    })
+    names(peak_region_list)=1:length(peak_region_list)
+    peak_region_list=rlist::list.clean(peak_region_list)
+    peak_region_matrix=do.call(rbind,peak_region_list)
+    rownames(peak_region_matrix)=names(peak_region_list)
+  }
+  return(peak_region_matrix)
+}
 
+FeaturePeakFinder=function(featurePosiVec,Poisson_threshold=0.05){
+  #find peak in position stat vector, only get positive peak or negative peak (not both) for now
+  if(mean(featurePosiVec)<0){featurePosiVec=-featurePosiVec}
+  if(qpois(Poisson_threshold,mean(featurePosiVec),lower.tail = F)<=max(featurePosiVec)){#whether there is a peak
+    #get consecutive region around peak
+    peakPosi=which(featurePosiVec==max(featurePosiVec)) #peak position
+    candidate_positions=featurePosiVec>mean(featurePosiVec) #region candidate position that larger than mean
+    derivity=candidate_positions-c(0,candidate_positions[-length(candidate_positions)])#the change trend of each position relative to the previous one
+    starts=which(derivity>0)-1 #region starts, elasticity 1(1kb)
+    ends=which(derivity<0) #region ends
+    if(length(ends)!=length(starts)){ends=c(ends,length(featurePosiVec))}
+    regions_length_order=order(ends-starts,decreasing = T)
+    for(i in regions_length_order){if(any(peakPosi>=starts[i] & peakPosi<=ends[i])){peak_region=c(starts[i],ends[i]); break}}
+    return(peak_region)
+  }else{
+    return(NULL)
+  }
+}
 
-FeaturePositionScoreMatrixGenerator=function(learning_feature_vec,cluster_idx,featureDistriList){
+#not useing now
+FeaturePositionScoreCalculator=function(learning_feature_vec,cluster_idx,featureDistriList){
   sampleNum=length(learning_feature_vec)
   featureMatrix=matrix(0,sampleNum,max(cluster_idx))
   for(i in 1:length(learning_feature_vec)){

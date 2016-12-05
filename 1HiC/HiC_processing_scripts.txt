@@ -33,6 +33,51 @@ analyzeHiC ${tag}/ -res 25000 -bgonly #using multiple cpu cause memory explosion
 analyzeHiC ${tag}/ -res 12500 -superRes 25000 -nomatrix -center -maxDist 10000000 -minDist 25000 -cpu 2 -interactions ${tag}_25K_center_interactions.txt
 awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){print $3,$10,$4,$14}else{print $3,0,$4,$14}}' ${tag}_25K_center_interactions.txt | sort -V -k1.4 -k2 > ${tag}_25K_center_interactions_simplified.txt #each bin is constant 25K size	#chr #start1 #start2 #distance
 
+##make matrix
+tagaddress="/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/GM12878"
+for i in {{1..21},X,Y}
+do analyzeHiC ${tagaddress}/GM12878 -res 25000 -chr chr${i} -raw > /home/ahe/Analysis/201608_HicChipRnaCor/data/matrix/GM12878_combined/WT_chr${i}_matrix_25K.txt
+done
+
+##KR norm matrix and find domain
+for i in *25K.txt; do i=${i%.*}; Rscript --vanilla /home/ahe/Analysis/Rfunction_package/KRnormalize_forHiC.R ${i}.txt 1 2 0.995 ${i}_KR.txt; done
+rm manifest.txt; for chr in {{1..21},X,Y}; do chr=chr${chr}; i=GM_${chr}_matrix_25K_KR.txt; echo ${chr},${i} >> manifest.txt ;done
+Rscript --vanilla ~/Analysis/Rfunction_package/domain_calling.R manifest.txt 0 0 25000 150000 10000000 /home/ahe/Analysis/201608_HicChipRnaCor/data/mydomain/GM
+awk 'BEGIN{OFS="\t";FS="\t"}NR==1 || $5=="TRUE"{print $0}' GM_all_domains.bed >  GM_all_elemental_domains.bed
+
+#draw domain
+rm manifest_heatmap.txt
+for chr in  {{1..21},X,Y}; do chr=chr${chr}; i=GM_${chr}_matrix_25K_KR.txt; echo ${chr},${i},/home/ahe/Analysis/201608_HicChipRnaCor/data/mydomain/GM_${chr}_domains.bed,none,all,all >> manifest_heatmap.txt; done
+Rscript --vanilla ~/Analysis/Rfunction_package/domain_draw_heatmap_group.R manifest_heatmap.txt 0 0 50000 4 5 = 1 /home/ahe/Analysis/201608_HicChipRnaCor/data/mydomain/pdfs/GM
+
+##Generate shuffled negative regions samples (entire loop body + anchors)
+rm *temp*
+i=1
+tot=$(($(wc -l ${tag}_all_elemental_domains.bed | awk '{print $1}')*3/2))
+sed 1d ${tag}_all_elemental_domains.bed > ${tag}_all_elemental_domains_temp.bed
+cp ${tag}_all_elemental_domains_temp.bed temp_include_pos
+while [ $i -le $tot ]
+do
+bedtools shuffle -i ${tag}_all_elemental_domains_temp.bed -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > temp_new
+sort -V -k1.4 -k2 temp_new | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$2+50000,$3,$3+50000,NR}' > temp_new_anchor
+sort -V -k1.4 -k2 temp_include_pos | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$2,$2+25000,$3,$3+25000,NR}' > temp_existing_anchor
+bedtools intersect -sorted -wa -wb -a temp_new_anchor -b temp_existing_anchor | awk 'BEGIN{OFS="\t";FS="\t"}{print $1,$4,$5,$6,$12}' | sort -V -k1.4 -k2 > temp_new_1pass
+awk 'BEGIN{OFS="\t";FS="\t"}NR==FNR{start[$6]=$4;next}FNR!=NR{if(start[$5]>$2-25000 && start[$5]<$3){print $4,$5}}' temp_existing_anchor temp_new_1pass > discard_list
+awk 'BEGIN{OFS="\t";FS="\t"}NR==FNR{discard[$1]=1;next}FNR!=NR{if(!discard[$6]==1){print $1,$2+12500,$4+12500,$4-$2}}' discard_list temp_new_anchor > temp_new_filtered
+cat temp_new_filtered >> temp_include_pos    #append new sample to all sample list
+cat temp_new_filtered >> temp
+i=$(wc -l temp | awk '{print $1}')
+echo $i
+done
+awk 'BEGIN{OFS="\t";FS="\t"}FNR!=NR||NR==1{print $0}' ${tag}_all_elemental_domains.bed temp > ${tag}_neg_elemental_domains.bed
+rm *temp* discard_list
+
+
+
+
+###########################
+#the following are used for interaction analysis
+
 ##Generate shuffled negative regions samples (entire loop body + anchors)
 rm *temp*
 i=1
@@ -53,6 +98,10 @@ echo $i
 done
 mv temp ${tag}_25K_negative_loops.txt
 rm *temp*
+
+##Generate short shuffled negative regions samples that don't coverlap with any short loop regions (shreshold 0.2M)
+awk 'BEGIN{OFS="\t";FS="\t"}{if($3-$2<200000){print $0}}' ${tag}_25K_center_interactions_simplified.txt >  ${tag}_25K_center_le200K_interactions_simplified.txt
+bedtools shuffle -i ${tag}_25K_center_le200K_interactions_simplified.txt -excl ${tag}_25K_center_le200K_interactions_simplified.txt -g ~/Analysis/genomeFiles/GenomeSize_hg19_essential.txt > ${tag}_25K_nonOverlap_le200K_negative_loops.txt
 
 ##Generate shuffled negative bin samples (anchors sites)
 awk 'BEGIN{OFS="\t";FS="\t"}$3==$9{if($10>0){printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,$10,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}else{printf "%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n",$9,0,$11,"A-"NR-1,$3,$4,$5,"B-"NR-1}}' ${tag}_25K_center_interactions.txt > ${tag}_25K_active_anchors.bed
@@ -77,3 +126,4 @@ if [ $now -eq $(($(wc -l temp_include_pos | awk '{print $1}'))) ]; then break; f
 done
 mv temp ${tag}_25K_12.5Kres_negative_anchors.bed
 rm *temp*
+

@@ -319,3 +319,46 @@ distance=dist(featurelib_matrix,temp$centers,method = "euclidean")
 max(distance[(temp$cluster==1),1])
 min(distance[(temp$cluster!=1),1])
 
+
+#draw AUC ROC #require nas,fill_seq
+temp=lapply(seq(0,1,0.01),function(x){
+  prediction_now=probability>x
+  TPR_FPR=rep(0,length(breakpoint)-1)
+  performance_table=matrix(0,length(breakpoint)-1,2)
+  for(i in 1:(length(breakpoint)-1)){
+    predictedTure=sum(prediction_now[(breakpoint[i]+1-sum(nas<breakpoint[i])):(breakpoint[i+1]-sum(nas<breakpoint[i+1]))],na.rm = T)
+    performance_table[fill_seq[i],1]=predictedTure
+    performance_table[fill_seq[i],2]=breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])-predictedTure
+  }
+  temp=lapply(1:((length(breakpoint)-1)/2),function(i){c(performance_table[2*i,1]/sum(performance_table[2*i,]),
+                                                         performance_table[2*i-1,1]/sum(performance_table[2*i-1,]),
+                                                         performance_table[2*i-1,1]/sum(performance_table[(2*i-1):(2*i),1]))})
+  TPR_FPR=do.call(c,temp)
+  return(TPR_FPR)
+})
+ROC_PRC_tabl=do.call(rbind,temp)
+
+par(mfrow=c(1,2))
+#ROC
+plot(ROC_PRC_tabl[,1:2],type="l",col="dodgerblue3",lwd=2,main="test set",ylab="TPR/Sensitivity",xlab="FPR/Fall out")
+lines(ROC_PRC_tabl[,4:5],col="gold2",lwd=2)
+lines(ROC_PRC_tabl[,7:8],col="firebrick3",lwd=2)
+abline(a=0,b=1,col="black",lwd=2)
+#PRC
+plot(ROC_PRC_tabl[,2:3],type="l",col="dodgerblue3",lwd=2,main="test set",ylab="Precision",xlab="Recall")
+lines(ROC_PRC_tabl[,c(5,6)],col="gold2",lwd=2)
+lines(ROC_PRC_tabl[,c(8,9)],col="firebrick3",lwd=2)
+
+#old cal of accuaracy/performance
+performance_table=matrix(0,7,3)
+for(i in 1:(length(breakpoint)-1)){
+  predictedTure=sum(pred[(breakpoint[i]+1-sum(nas<breakpoint[i])):(breakpoint[i+1]-sum(nas<breakpoint[i+1]))],na.rm = T)
+  performance_table[fill_seq[i],1]=predictedTure
+  performance_table[fill_seq[i],2]=breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])-predictedTure
+  performance_table[fill_seq[i],3]=breakpoint[i+1]-sum(nas<breakpoint[i+1])-breakpoint[i]+sum(nas<breakpoint[i])
+}
+performance_table[7,]=colSums(performance_table[1:6,])
+precision=round(c(performance_table[1,1]/sum(performance_table[1:2,1]),performance_table[3,1]/sum(performance_table[3:4,1]),performance_table[5,1]/sum(performance_table[5:6,1])),2)
+sensitivity=round(c(performance_table[1,1]/sum(performance_table[1,1:2]),performance_table[3,1]/sum(performance_table[3,1:2]),performance_table[5,1]/sum(performance_table[5,1:2])),2)
+
+

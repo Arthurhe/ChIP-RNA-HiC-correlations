@@ -4,7 +4,7 @@ library(data.table)
 #library(gplots)
 #library(dtw)
 #library(Rtsne) ##Rtsne 
-library(proxy)
+library(proxy) #dist
 library(fastcluster)
 source("/home/ahe/Analysis/201608_HicChipRnaCor/codes/3Main_Processing/HicChipRNACor_functionPack.r")
 #source("F:/DATA/R/Kees/1608_HicChipRNACor/3Main_Processing/HicChipRNACor_functionPack.r")
@@ -29,6 +29,23 @@ pos_samp_num=5000
 neg_samp_num=5000
 learning_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
 learning_list=lapply(1:nrow(learning_list_idx),function(x){return(get_MarkMatrix(learning_list_idx[x,],dbhandle,target_cell_type,target_markers))})
+
+#scan all shit
+allGMshort_list_idx=rbind(target_pos_list,target_neg_list)
+allGMshort_list=lapply(1:nrow(allGMshort_list_idx),function(x){return(get_MarkMatrix(allGMshort_list_idx[x,],dbhandle,target_cell_type,target_markers))})
+allGMshort_list=learning_list
+interactionlist_pos=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/GM12878/GM12878_25K_center_interactions_simplified.txt",stringsAsFactors = F,sep="\t")
+interactionlist_neg=read.table("/home/ahe/Analysis/201608_HicChipRnaCor/data/HiC/GM12878/GM12878_25K_negative_loops.txt",stringsAsFactors = F,sep="\t") #GM12878_25K_negative_loops.txt
+target_pos_list=interactionlist_pos[interactionlist_pos[,4]<1000000,]
+target_neg_list=interactionlist_neg[interactionlist_neg[,4]<1000000,]
+pos_samp_num=5000
+neg_samp_num=5000
+GM1M_list_idx=rbind(target_pos_list[sample(nrow(target_pos_list),pos_samp_num),],target_neg_list[sample(nrow(target_neg_list),neg_samp_num),])
+GM1M_list=lapply(1:nrow(GM1M_list_idx),function(x){return(get_MarkMatrix(GM1M_list_idx[x,],dbhandle,target_cell_type,target_markers))})
+
+save(allGMshort_list,GM1M_list,file="matrix_allGM_short.Rdata")
+
+
 #output matrix samples as csv 
 #for(i in 1:length(matrixlist_500)){
 #  write.csv(matrixlist_500[[i]],file=paste("sample_matrix_",i,".csv",sep=""))
@@ -74,3 +91,20 @@ for(i in 1:length(K562_scanning_list)){
   print(i+10000)
 }
 save(featurelib_matrix,cluster_info,learning_feature_vec,K562_scanning_feature_vec,file="featureOn15000Short.Rdata")
+
+
+#scan all shit
+#load("featureOn15000Short.Rdata")
+scanning_feature_vec=c()
+scanning_long_feature_vec=c()
+#create feature list
+for(i in 1:length(allGMshort_list)){
+  scanning_feature_vec[[i]]=MatrixScan_Advance2(allGMshort_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  print(i)
+}
+
+for(i in 1:length(GM1M_list)){
+  scanning_long_feature_vec[[i]]=MatrixScan_Advance2(GM1M_list[[i]],featurelib_matrix,cluster_info,distanceThreshold=0.25)
+  print(-i)
+}
+save(featurelib_matrix,cluster_info,scanning_feature_vec,scanning_long_feature_vec,file="featureOnAllGM_short.Rdata")
