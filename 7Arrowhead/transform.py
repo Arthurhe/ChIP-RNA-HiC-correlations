@@ -43,14 +43,27 @@ def main():
 
         it.iternext()
 
-    print(transmat)
-    # Note, you may need to adjust the float precision of the output to save
-    # save space.
+    # print(transmat)
+    # print(transmat.shape)
     numpy.savetxt("transformed.txt", transmat, fmt='%.13f', delimiter="\t")
+    prepend("transformed.txt", str(transmat.shape[0]))
 
     squared = transmat * transmat
-    print(squared)
+    # print(squared)
+    # print(squared.shape)
     numpy.savetxt("squared.txt", squared, fmt='%.13f', delimiter="\t")
+    prepend("squared.txt", str(squared.shape[0]))
+
+
+def prepend(filename, line):
+    '''
+    Function to add the matrix dimensions to the beginning of the file, as
+    expected by the scoring program
+    '''
+    with open(filename, 'r+') as f:
+        content = f.read()
+        f.seek(0, 0)
+        f.write(line.rstrip('\r\n') + '\n' + content)
 
 if __name__ == "__main__":
     main()
