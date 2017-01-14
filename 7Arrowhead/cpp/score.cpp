@@ -263,9 +263,9 @@ int main(int argc, char * argv[]) {
     sign04.filter1(Usigns, Lsigns, Svar, 0.2, 0.4);
     sign05.filter1(Usigns, Lsigns, Svar, 0.2, 0.5);
     sign06.filter1(Usigns, Lsigns, Svar, 0.2, 0.6);
-    sign07.filter1(Usigns, Lsigns, Svar, 0.2, 0.7);
+    /*sign07.filter1(Usigns, Lsigns, Svar, 0.2, 0.7);
     sign08.filter1(Usigns, Lsigns, Svar, 0.2, 0.8);
-    sign09.filter1(Usigns, Lsigns, Svar, 0.2, 0.9);
+    sign09.filter1(Usigns, Lsigns, Svar, 0.2, 0.9);*/
 
     std::ofstream filtered01;
     filtered01.open("filtered01.txt");
@@ -282,7 +282,7 @@ int main(int argc, char * argv[]) {
     sign03.write(filtered03);
     filtered03.close();
 
-    /**std::ofstream filtered04;
+    std::ofstream filtered04;
     filtered04.open("filtered04.txt");
     sign04.write(filtered04);
     filtered04.close();
@@ -297,7 +297,7 @@ int main(int argc, char * argv[]) {
     sign06.write(filtered06);
     filtered06.close();
 
-    std::ofstream filtered07;
+    /*std::ofstream filtered07;
     filtered07.open("filtered07.txt");
     sign07.write(filtered07);
     filtered07.close();
@@ -322,6 +322,9 @@ int main(int argc, char * argv[]) {
     Aggregate binaryMatr1 = Aggregate(sign01);
     Aggregate binaryMatr2 = Aggregate(sign02);
     Aggregate binaryMatr3 = Aggregate(sign03);
+    Aggregate binaryMatr4 = Aggregate(sign04);
+    Aggregate binaryMatr5 = Aggregate(sign05);
+    Aggregate binaryMatr6 = Aggregate(sign06);
 
     binaryMatr1.toBinary();
     std::ofstream binary1;
@@ -340,6 +343,24 @@ int main(int argc, char * argv[]) {
     binary3.open("BinaryMatrix03.txt");
     binaryMatr3.write(binary3);
     binary3.close();
+
+    binaryMatr4.toBinary();
+    std::ofstream binary4;
+    binary4.open("BinaryMatrix04.txt");
+    binaryMatr4.write(binary4);
+    binary4.close();
+
+    binaryMatr5.toBinary();
+    std::ofstream binary5;
+    binary5.open("BinaryMatrix05.txt");
+    binaryMatr5.write(binary5);
+    binary5.close();
+
+    binaryMatr6.toBinary();
+    std::ofstream binary6;
+    binary6.open("BinaryMatrix06.txt");
+    binaryMatr6.write(binary6);
+    binary6.close();
 
     now = std::time(0);
     std::cout << "[Elapsed: " << now - start << "s]\tDone!" << std::endl;
