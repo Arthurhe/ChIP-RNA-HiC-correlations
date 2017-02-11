@@ -29,19 +29,23 @@ def main():
 def boundarize(fname):
     infile = open(fname, 'r')
     prevLine = None
+    chrom = None
+    prevChrom = None
 
     for line in infile:
         line = line.rstrip()
         sline = line.split("\t")
+        chrom = sline[0]
 
         # we want integer division
         sline[2] = (int(sline[1]) + int(sline[2])) // 2
         sline[2] = str(sline[2])
 
-        if prevLine is not None:
+        if prevLine is not None and chrom == prevChrom:
             sline[1] = prevLine[2]
 
         prevLine = sline
+        prevChrom = chrom
 
         newLine = '\t'.join(sline)
         yield newLine
