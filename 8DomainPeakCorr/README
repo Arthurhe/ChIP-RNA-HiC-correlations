@@ -1,0 +1,7 @@
+python3 boundarize.py -i ../../data/domains/sorted_GM12878_all_domains_elemental.bed > boundarized_domains.bed
+
+### Use processed/withDirection bed files instead ###
+bedtools intersect -sorted -loj -a boundarized_domains.bed -b ~/GM12_ENCODEng_CTCF_processed.bed > asdffff.bed
+
+python deboundarize.py -o ../../data/domains/GM12878_all_domains_elemental.bed -s ../../data/domains/boundarized_domains.bed -c ../../data/domains/GM12_ctcf_correlation.bed
+
