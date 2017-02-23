@@ -14,7 +14,7 @@ def main():
 
     shiftedBed = open(args.shifted, 'r')
     origBed = open(args.original, 'r')
-    corrBed = open(args.correlated, 'rw')
+    corrBed = open(args.correlated, 'r')
 
     # Read in shifted boundaries, create dict of ((start, end), line #) tuples
     shiftedDict = read_shifted_bed(shiftedBed)
@@ -65,7 +65,8 @@ def read_orig_bed(bedFile):
         line = line.rstrip()
         sline = line.split("\t")
         start = sline[1]
-        coord = "{} {}".format(start, start)
+        end = sline[2]
+        coord = "{} {}".format(start, end)
         dictionary[counter] = coord
         counter += 1
 

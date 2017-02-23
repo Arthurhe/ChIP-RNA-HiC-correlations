@@ -5,3 +5,9 @@ bedtools intersect -sorted -loj -a boundarized_domains.bed -b ~/GM12_ENCODEng_CT
 
 python deboundarize.py -o ../../data/domains/GM12878_all_domains_elemental.bed -s ../../data/domains/boundarized_domains.bed -c ../../data/domains/GM12_ctcf_correlation.bed
 
+
+# Separate +/- CTCFs for separate analysis
+grep -e ".*    .*      .*      .*      .*      .*      .*
+        .*      .*      .*      .*      -" deboundarized_GM12_ctcf_withDirection.bed > deboundarized_GM12_ctcf_+.bed
+grep -e ".*    .*      .*      .*      .*      .*      .*
+        .*      .*      .*      .*      -" deboundarized_GM12_ctcf_withDirection.bed > deboundarized_GM12_ctcf_-.bed
