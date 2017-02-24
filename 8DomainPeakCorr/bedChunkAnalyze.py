@@ -17,14 +17,16 @@ def main():
     parser.add_argument("bedA")
     parser.add_argument("bedPath")
     parser.add_argument("markerListFile")
+    parser.add_argument("numBins")
     args = parser.parse_args()
+    bins = int(args.numBins)
 
     bedA = open(args.bedA, 'r')
     tmpFile = open("splitBed.bed", 'w')
 
     # Divide every peak into chunks
     for line in bedA:
-        chunk(line, 14, tmpFile)
+        chunk(line, bins, tmpFile)
 
     tmpFile.close()
 
@@ -36,14 +38,16 @@ def main():
     sCovFile = open("splitCoverages.bed", 'r')
     result = parse_coverage_file(sCovFile)
     sCovFile.close()
-    print(result)
 
     # Create matrices from parsed results
-    numSubBins = len(result[0][1])
-    numBins = numSubBins // 14
-    a = numpy.asarray(result[0][1])
-    b = a.reshape((numBins, -1))
-    print(b)
+    for i in range(len(result)):
+        numSubBins = len(result[i][1])
+        numBins = numSubBins // bins
+        name = result[i][0]
+        a = numpy.asarray(result[i][1])
+        b = a.reshape((numBins, -1))
+        print(name)
+        print(b)
 
     bedA.close()
     return
