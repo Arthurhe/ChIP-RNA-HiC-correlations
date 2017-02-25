@@ -48,6 +48,7 @@ def main():
         b = a.reshape((numBins, -1))
         print(name)
         print(b)
+        numpy.save(name, b)
 
     bedA.close()
     return
@@ -94,7 +95,7 @@ def parse_coverage_file(covFile):
         line = line.rstrip()
         sline = line.split("\t")
         for i in range(3, 3+numMarkers):
-            coverages[i-3][1].append(sline[i])
+            coverages[i-3][1].append(float(sline[i]))
 
     return coverages
 

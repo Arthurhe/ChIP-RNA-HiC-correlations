@@ -11,3 +11,7 @@ grep -e ".*    .*      .*      .*      .*      .*      .*
         .*      .*      .*      .*      -" deboundarized_GM12_ctcf_withDirection.bed > deboundarized_GM12_ctcf_+.bed
 grep -e ".*    .*      .*      .*      .*      .*      .*
         .*      .*      .*      .*      -" deboundarized_GM12_ctcf_withDirection.bed > deboundarized_GM12_ctcf_-.bed
+
+
+# Chunk domains and analyze coverage of each domain
+python3 bedChunkAnalyze.py beda.bed tmp markerfile.txt 10
