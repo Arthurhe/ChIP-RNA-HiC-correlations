@@ -7,9 +7,8 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("bedA")
-    parser.add_argument("bedPath")
-    parser.add_argument("markerListFile")
+    parser.add_argument("bedA", help="bed to compare against (eg. domain file)")
+    parser.add_argument("markerListFile", help="tab-separated-file describing the marker and a path name to that marker's bed file")
     parser.add_argument("-o", "--output", help="file to write output to. If not specified, print results to stdout")
     args = parser.parse_args()
 
