@@ -30,7 +30,7 @@ def main():
 
     f.close()
 
-    result = wrapper(args.bedA, args.bedPath, markers)
+    result = wrapper(args.bedA, markers)
 
     # Decide how to return output
     if args.output is None:
@@ -43,7 +43,7 @@ def main():
         outfile.close()
 
 
-def wrapper(fa, bedPath, markers):
+def wrapper(fa, markers):
     # buff stores the coverage results
     buff = []
     for tupl in markers:
