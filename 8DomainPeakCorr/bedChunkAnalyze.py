@@ -14,10 +14,9 @@ import numpy
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("bedA")
-    parser.add_argument("bedPath")
-    parser.add_argument("markerListFile")
-    parser.add_argument("numBins")
+    parser.add_argument("bedA", help="bed to compare against (eg. domain file)")
+    parser.add_argument("markerListFile", help="tab-separated-file describing the marker and a path name to that marker's bed file")
+    parser.add_argument("numBins", help="Number of bins to divide each peak of bedA into")
     args = parser.parse_args()
     bins = int(args.numBins)
 
@@ -32,7 +31,7 @@ def main():
 
     # I have the split bed file - compute the coverages of that file
     subprocess.call(["python3", "bedtoolsCoverageWrapper.py", "splitBed.bed",
-                     args.bedPath, args.markerListFile, "-o", "splitCoverages.bed"])
+                     args.markerListFile, "-o", "splitCoverages.bed"])
 
     # Construct matrix from each additional column in the coverage file
     sCovFile = open("splitCoverages.bed", 'r')
