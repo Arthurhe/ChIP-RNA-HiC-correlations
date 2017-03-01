@@ -10,6 +10,7 @@ import argparse
 import subprocess
 import sys
 import numpy
+import os
 
 
 def main():
@@ -22,6 +23,10 @@ def main():
     args = parser.parse_args()
     bins = int(args.numBins)
 
+    curDir = os.getcwd()
+    curDir = curDir + "/"
+    wrapperFunction = curDir + "bedtoolsCoverageWrapper.py"
+
     bedA = open(args.bedA, 'r')
     tmpFile = open("splitBed.bed", 'w')
 
@@ -32,7 +37,7 @@ def main():
     tmpFile.close()
 
     # I have the split bed file - compute the coverages of that file
-    subprocess.call(["python3", "bedtoolsCoverageWrapper.py", "splitBed.bed",
+    subprocess.call(["python3", wrapperFunction, "splitBed.bed",
                      args.markerListFile, "-o", args.outfname])
 
     if args.outputFormat == "numpyArray":
