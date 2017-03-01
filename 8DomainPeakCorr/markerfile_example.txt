@@ -1,0 +1,3 @@
+SMC	/home/brian/lab/data/GM12Processedbed/GM12_ENCODEng_SMC3_processed.bed
+CTCF+	/home/brian/lab/data/working/CTCF+.bed
+CTCF-	/home/brian/lab/data/working/CTCF-.bed

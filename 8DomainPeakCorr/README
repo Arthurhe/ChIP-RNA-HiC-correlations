@@ -18,3 +18,6 @@ python3 bedChunkAnalyze.py beda.bed markerfile.txt 10
 
 # How to use bedtoolsCoverageWrapper.py
 ./bedtoolsCoverageWrapper.py ~/lab/data/domains/sorted_GM12878_all_domains_elemental.bed markerfile.txt -o outputfile.txt
+
+# Markerfile example
+This file is a tab-delimited file - see markerfile_example.txt
