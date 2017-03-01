@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     bins = int(args.numBins)
 
-    curDir = os.getcwd()
+    curDir = os.path.dirname(os.path.abspath(__file__))
     curDir = curDir + "/"
     wrapperFunction = curDir + "bedtoolsCoverageWrapper.py"
 
