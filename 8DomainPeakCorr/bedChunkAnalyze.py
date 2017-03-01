@@ -17,6 +17,8 @@ def main():
     parser.add_argument("bedA", help="bed to compare against (eg. domain file)")
     parser.add_argument("markerListFile", help="tab-separated-file describing the marker and a path name to that marker's bed file")
     parser.add_argument("numBins", help="Number of bins to divide each peak of bedA into")
+    parser.add_argument("outputFormat", choices=['numpyArray', 'bed'], help="Format of the desired output. Specifying 'bed' will output the result of the bedtoolsCoverageWrapper. Specifying 'numpyArray' will reassemble the wrapper output and return a binary numpy array.")
+    parser.add_argument("outfname", help="Name of the file output by bedtoolsCoverageWrapper")
     args = parser.parse_args()
     bins = int(args.numBins)
 
@@ -31,23 +33,24 @@ def main():
 
     # I have the split bed file - compute the coverages of that file
     subprocess.call(["python3", "bedtoolsCoverageWrapper.py", "splitBed.bed",
-                     args.markerListFile, "-o", "splitCoverages.bed"])
+                     args.markerListFile, "-o", args.outfname])
 
-    # Construct matrix from each additional column in the coverage file
-    sCovFile = open("splitCoverages.bed", 'r')
-    result = parse_coverage_file(sCovFile)
-    sCovFile.close()
+    if args.outputFormat == "numpyArray":
+        # Construct matrix from each additional column in the coverage file
+        sCovFile = open(args.outfname, 'r')
+        result = parse_coverage_file(sCovFile)
+        sCovFile.close()
 
-    # Create matrices from parsed results
-    for i in range(len(result)):
-        numSubBins = len(result[i][1])
-        numBins = numSubBins // bins
-        name = result[i][0]
-        a = numpy.asarray(result[i][1])
-        b = a.reshape((numBins, -1))
-        print(name)
-        print(b)
-        numpy.save(name, b)
+        # Create matrices from parsed results
+        for i in range(len(result)):
+            numSubBins = len(result[i][1])
+            numBins = numSubBins // bins
+            name = result[i][0]
+            a = numpy.asarray(result[i][1])
+            b = a.reshape((numBins, -1))
+            print(name)
+            print(b)
+            numpy.save(name, b)
 
     bedA.close()
     return
