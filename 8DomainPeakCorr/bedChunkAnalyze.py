@@ -70,17 +70,12 @@ def chunk(line, n, outFile):
     start = int(sline[1])
     end = int(sline[2])
 
-    d = (end - start + 1) // n
+    d = (end - start + 1) / n
     i = 0
 
-    # Handle the case where the bin size doesn't divide evenly by extending the
-    # the last bin
     while i < n:
-        if i == n-1:
-            outFile.write("{}\t{}\t{}\n".format(chrom, start + i*d, end))
-        else:
-            outFile.write("{}\t{}\t{}\n".format(chrom, start + i*d,
-                                                start + (i+1)*d-1))
+        outFile.write("{}\t{}\t{}\n".format(chrom, round(start + i*d),
+                                            round(start + (i+1)*d-1)))
         i += 1
 
     return
