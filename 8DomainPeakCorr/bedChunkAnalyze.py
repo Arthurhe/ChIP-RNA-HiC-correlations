@@ -67,8 +67,11 @@ def chunk(line, n, outFile):
     sline = line.split("\t")
 
     chrom = sline[0]
-    start = int(sline[1])
-    end = int(sline[2])
+    a = int(sline[1])
+    b = int(sline[2])
+
+    start = min(a, b)
+    end = max(a, b)
 
     d = (end - start + 1) / n
     i = 0
