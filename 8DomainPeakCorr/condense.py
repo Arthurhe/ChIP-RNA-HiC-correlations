@@ -15,14 +15,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("matrFile", help="File containing the matrix")
     parser.add_argument("N", type=int, help="Number of features in the matrix")
-    # parser.add_argument("colorFile", help="File containing feature color associations")
     args = parser.parse_args()
 
     n = args.N
 
     origMatr = numpy.loadtxt(args.matrFile)
-    # origMatr = numpy.loadtxt("tmp.txt")
     a = condense(origMatr, n)
+    numpy.save("condensed", a)
 
     print(a)
     return
