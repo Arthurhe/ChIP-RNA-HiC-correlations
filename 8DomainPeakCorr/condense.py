@@ -21,7 +21,10 @@ def main():
 
     origMatr = numpy.loadtxt(args.matrFile)
     a = condense(origMatr, n)
-    numpy.save("condensed", a)
+
+    origFName = args.matrFile
+    newFName = origFName.split(".")[0]
+    numpy.save(newFName, a)
 
     print(a)
     return
